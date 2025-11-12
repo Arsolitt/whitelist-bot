@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 
 	"whitelist/internal/core"
 	"whitelist/internal/core/logger"
@@ -73,6 +74,9 @@ func main() {
 	mainRouter.AddRoute(func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
 		return state == fsm.StateIdle
 	}, func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
+		if update.Message.Text == "err" {
+			return fsm.StateIdle, fmt.Errorf("test error")
+		}
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
 			Text:   update.Message.Text,
@@ -83,7 +87,11 @@ func main() {
 	opts := []bot.Option{
 		bot.WithDefaultHandler(mainRouter.Handle),
 		bot.WithErrorsHandler(func(err error) {
-			slog.Error("Bot error", "error", err)
+			if strings.Contains(err.Error(), "context canceled") {
+				slog.Info("Bot stopped")
+				return
+			}
+			slog.Error("Bot error", "error", err.Error())
 		}),
 	}
 
