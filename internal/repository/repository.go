@@ -1,11 +1,9 @@
 package repository
 
-import (
-	"whitelist/internal/model"
-)
+import "whitelist/internal/domain/user"
 
 type IRepository interface {
-	UserByTelegramID(telegramID int64) (model.User, error)
-	CreateUser(user model.User) error
-	UpdateUser(user model.User) error
+	UserByTelegramID(telegramID int64) (user.User, error)
+	CreateUser(user user.User) error
+	UpdateUser(user user.User) error
 }

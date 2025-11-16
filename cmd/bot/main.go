@@ -44,32 +44,46 @@ func main() {
 	}, func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
-			Text:   "Пожалуйста, введите ваш никнейм",
+			Text:   "Вы зарегистрированы в боте!",
 		})
-		return fsm.StateWaitingNickname, nil
+		return fsm.StateIdle, nil
 	})
 
 	mainRouter.AddRoute(func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
-		return state == fsm.StateWaitingNickname
+		return update.Message.Text == "/info" && state == fsm.StateIdle
 	}, func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
 		user, err := repositoryService.UserByTelegramID(update.Message.From.ID)
 		if err != nil {
 			return fsm.StateIdle, fmt.Errorf("failed to get user: %w", err)
 		}
-
-		user.CustomName = update.Message.Text
-		err = repositoryService.UpdateUser(user)
-		if err != nil {
-			return fsm.StateIdle, fmt.Errorf("failed to update user: %w", err)
-		}
-
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
-			Text:   "Никнейм успешно обновлен",
+			Text:   fmt.Sprintf("Ваш никнейм: %s", user.Username()),
 		})
-
 		return fsm.StateIdle, nil
 	})
+
+	// mainRouter.AddRoute(func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
+	// 	return state == fsm.StateWaitingNickname
+	// }, func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
+	// 	user, err := repositoryService.UserByTelegramID(update.Message.From.ID)
+	// 	if err != nil {
+	// 		return fsm.StateIdle, fmt.Errorf("failed to get user: %w", err)
+	// 	}
+
+	// 	user.CustomName = update.Message.Text
+	// 	err = repositoryService.UpdateUser(user)
+	// 	if err != nil {
+	// 		return fsm.StateIdle, fmt.Errorf("failed to update user: %w", err)
+	// 	}
+
+	// 	b.SendMessage(ctx, &bot.SendMessageParams{
+	// 		ChatID: update.Message.Chat.ID,
+	// 		Text:   "Никнейм успешно обновлен",
+	// 	})
+
+	// 	return fsm.StateIdle, nil
+	// })
 
 	mainRouter.AddRoute(func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
 		return state == fsm.StateIdle

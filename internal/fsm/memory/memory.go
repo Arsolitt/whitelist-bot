@@ -2,22 +2,22 @@ package memory
 
 import (
 	"sync"
+	domainUser "whitelist/internal/domain/user"
 	"whitelist/internal/fsm"
-	"whitelist/internal/model"
 )
 
 type MemoryFSM struct {
-	states map[model.UserID]fsm.State
+	states map[domainUser.UserID]fsm.State
 	mu     sync.RWMutex
 }
 
 func NewMemoryFSM() *MemoryFSM {
 	return &MemoryFSM{
-		states: make(map[model.UserID]fsm.State),
+		states: make(map[domainUser.UserID]fsm.State),
 	}
 }
 
-func (f *MemoryFSM) GetState(userID model.UserID) (fsm.State, error) {
+func (f *MemoryFSM) GetState(userID domainUser.UserID) (fsm.State, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 
@@ -37,7 +37,7 @@ func (f *MemoryFSM) GetState(userID model.UserID) (fsm.State, error) {
 	return state, nil
 }
 
-func (f *MemoryFSM) SetState(userID model.UserID, state fsm.State) error {
+func (f *MemoryFSM) SetState(userID domainUser.UserID, state fsm.State) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 

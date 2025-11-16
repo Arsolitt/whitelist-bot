@@ -1,6 +1,6 @@
 package fsm
 
-import "whitelist/internal/model"
+import domainUser "whitelist/internal/domain/user"
 
 type State string
 
@@ -11,6 +11,6 @@ const (
 )
 
 type IFSM interface {
-	GetState(userID model.UserID) (State, error)
-	SetState(userID model.UserID, state State) error
+	GetState(userID domainUser.UserID) (State, error)
+	SetState(userID domainUser.UserID, state State) error
 }

@@ -1,0 +1,35 @@
+services:
+  whitelist-bot:
+    build:
+      context: .
+      target: local
+    env_file:
+      - .env
+    volumes:
+      - .:/src/app
+    # ports:
+    #   - "8000:8080"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-bookworm
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+    driver: local
+  nats-data:
+    driver: local

@@ -7,9 +7,9 @@ import (
 	"log/slog"
 	"whitelist/internal/core"
 	"whitelist/internal/core/logger"
+	domainUser "whitelist/internal/domain/user"
 	"whitelist/internal/fsm"
 	"whitelist/internal/locker"
-	"whitelist/internal/model"
 	"whitelist/internal/repository"
 
 	"github.com/go-telegram/bot"
@@ -76,40 +76,46 @@ func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.
 		slog.InfoContext(ctx, "Handling update")
 
 		user, err := r.repository.UserByTelegramID(update.Message.From.ID)
+
 		if errors.Is(err, core.ErrUserNotFound) {
 			slog.WarnContext(ctx, "User not found, creating new user")
-			newUser, err := model.NewUser(
-				update.Message.From.ID,
-				"",
-			)
+
+			newUser, err := domainUser.NewUserBuilder().
+				TelegramID(update.Message.From.ID).
+				FirstName(update.Message.From.FirstName).
+				LastName(update.Message.From.LastName).
+				Username(update.Message.From.Username).
+				Build()
+
 			if err != nil {
 				return fmt.Errorf("failed to create new user model: %w", err)
 			}
 
 			err = r.repository.CreateUser(newUser)
 			if err != nil {
-				return fmt.Errorf("failed to create new user in repository: %w", err)
+				return fmt.Errorf("failed to create new user in storage: %w", err)
 			}
 
 			user = newUser
 		} else if err != nil {
 			return fmt.Errorf("failed to get user by telegram ID: %w", err)
 		}
-		ctx = logger.WithLogValue(ctx, logger.UserIDField, user.ID.String())
+		ctx = logger.WithLogValue(ctx, logger.UserIDField, user.ID().String())
 
 		slog.DebugContext(ctx, "Trying to lock user")
-		if err := r.locker.Lock(user.ID); err != nil {
+		if err := r.locker.Lock(user.ID()); err != nil {
 			return fmt.Errorf("failed to lock user: %w", err)
 		}
 		slog.DebugContext(ctx, "User locked")
 		defer func() {
-			if err := r.locker.Unlock(user.ID); err != nil {
+			if err := r.locker.Unlock(user.ID()); err != nil {
 				slog.ErrorContext(ctx, "Failed to unlock user", logger.ErrorField, err)
 			}
+			slog.DebugContext(ctx, "User unlocked")
 		}()
 
 		slog.DebugContext(ctx, "Trying to get user state")
-		currentState, err := r.fsm.GetState(user.ID)
+		currentState, err := r.fsm.GetState(user.ID())
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to get user state", logger.ErrorField, err)
 			return fmt.Errorf("failed to get user state: %w", err)
@@ -123,7 +129,7 @@ func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.
 				ctx = logger.WithLogValue(ctx, logger.NextStateField, nextState)
 
 				if nextState != currentState {
-					if r.fsm.SetState(user.ID, nextState) != nil {
+					if r.fsm.SetState(user.ID(), nextState) != nil {
 						return fmt.Errorf("failed to set user state: %w", err)
 					}
 					ctx = logger.WithLogValue(ctx, logger.NextStateField, nextState)
@@ -132,6 +138,7 @@ func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.
 				if err != nil {
 					return fmt.Errorf("failed to handle route: %w", err)
 				}
+				return nil
 			}
 		}
 		return nil

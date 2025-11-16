@@ -1,8 +1,8 @@
 package locker
 
-import "whitelist/internal/model"
+import domainUser "whitelist/internal/domain/user"
 
 type ILocker interface {
-	Lock(userID model.UserID) error
-	Unlock(userID model.UserID) error
+	Lock(userID domainUser.UserID) error
+	Unlock(userID domainUser.UserID) error
 }

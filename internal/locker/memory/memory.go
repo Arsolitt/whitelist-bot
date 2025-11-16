@@ -3,21 +3,21 @@ package memory
 import (
 	"fmt"
 	"sync"
-	"whitelist/internal/model"
+	domainUser "whitelist/internal/domain/user"
 )
 
 type MemoryLocker struct {
 	mu    sync.RWMutex
-	locks map[model.UserID]*sync.RWMutex
+	locks map[domainUser.UserID]*sync.RWMutex
 }
 
 func NewMemoryLocker() *MemoryLocker {
 	return &MemoryLocker{
-		locks: make(map[model.UserID]*sync.RWMutex),
+		locks: make(map[domainUser.UserID]*sync.RWMutex),
 	}
 }
 
-func (l *MemoryLocker) Lock(userID model.UserID) error {
+func (l *MemoryLocker) Lock(userID domainUser.UserID) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -29,7 +29,7 @@ func (l *MemoryLocker) Lock(userID model.UserID) error {
 	return nil
 }
 
-func (l *MemoryLocker) Unlock(userID model.UserID) error {
+func (l *MemoryLocker) Unlock(userID domainUser.UserID) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
