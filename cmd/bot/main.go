@@ -13,6 +13,7 @@ import (
 	"whitelist/internal/fsm"
 	memoryFSM "whitelist/internal/fsm/memory"
 	memoryLocker "whitelist/internal/locker/memory"
+	"whitelist/internal/msgs"
 	memoryRepository "whitelist/internal/repository/memory"
 	"whitelist/internal/router"
 
@@ -57,8 +58,9 @@ func main() {
 			return fsm.StateIdle, fmt.Errorf("failed to get user: %w", err)
 		}
 		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   fmt.Sprintf("Ваш никнейм: %s", user.Username()),
+			ChatID:    update.Message.Chat.ID,
+			Text:      msgs.UserInfo(user),
+			ParseMode: "HTML",
 		})
 		return fsm.StateIdle, nil
 	})
