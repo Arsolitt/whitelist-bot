@@ -23,14 +23,6 @@ func (f *MemoryFSM) GetState(userID domainUser.UserID) (fsm.State, error) {
 
 	state, ok := f.states[userID]
 	if !ok {
-		f.mu.RUnlock()
-
-		f.mu.Lock()
-		f.states[userID] = state
-		f.mu.Unlock()
-
-		f.mu.RLock()
-
 		return fsm.StateStart, nil
 	}
 
