@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"whitelist/internal/fsm"
 	"whitelist/internal/msgs"
-	"whitelist/internal/repository"
+	userRepo "whitelist/internal/repository/user"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
 
 type Handlers struct {
-	repo repository.IRepository
+	repo userRepo.IUserRepository
 }
 
-func New(repo repository.IRepository) *Handlers {
+func New(repo userRepo.IUserRepository) *Handlers {
 	return &Handlers{repo: repo}
 }
 

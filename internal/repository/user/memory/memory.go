@@ -6,18 +6,18 @@ import (
 	domainUser "whitelist/internal/domain/user"
 )
 
-type MemoryRepository struct {
+type MemoryUserRepository struct {
 	mu    sync.RWMutex
 	users map[domainUser.UserID]domainUser.User
 }
 
-func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{
+func NewMemoryUserRepository() *MemoryUserRepository {
+	return &MemoryUserRepository{
 		users: make(map[domainUser.UserID]domainUser.User),
 	}
 }
 
-func (r *MemoryRepository) UserByTelegramID(telegramID int64) (domainUser.User, error) {
+func (r *MemoryUserRepository) UserByTelegramID(telegramID int64) (domainUser.User, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -30,7 +30,7 @@ func (r *MemoryRepository) UserByTelegramID(telegramID int64) (domainUser.User, 
 	return domainUser.User{}, core.ErrUserNotFound
 }
 
-func (r *MemoryRepository) CreateUser(user domainUser.User) error {
+func (r *MemoryUserRepository) CreateUser(user domainUser.User) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -38,7 +38,7 @@ func (r *MemoryRepository) CreateUser(user domainUser.User) error {
 	return nil
 }
 
-func (r *MemoryRepository) UpdateUser(user domainUser.User) error {
+func (r *MemoryUserRepository) UpdateUser(user domainUser.User) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

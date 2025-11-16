@@ -10,7 +10,7 @@ import (
 	domainUser "whitelist/internal/domain/user"
 	"whitelist/internal/fsm"
 	"whitelist/internal/locker"
-	"whitelist/internal/repository"
+	userRepo "whitelist/internal/repository/user"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -22,18 +22,18 @@ type HandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, cu
 type MatcherFunc func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool
 
 type TelegramRouter struct {
-	routes     []TelegramRoute
-	fsm        fsm.IFSM
-	repository repository.IRepository
-	locker     locker.ILocker
+	routes         []TelegramRoute
+	fsm            fsm.IFSM
+	userRepository userRepo.IUserRepository
+	locker         locker.ILocker
 }
 
-func NewTelegramRouter(fsm fsm.IFSM, locker locker.ILocker, repository repository.IRepository) *TelegramRouter {
+func NewTelegramRouter(fsm fsm.IFSM, locker locker.ILocker, repository userRepo.IUserRepository) *TelegramRouter {
 	return &TelegramRouter{
-		routes:     make([]TelegramRoute, 0),
-		fsm:        fsm,
-		locker:     locker,
-		repository: repository,
+		routes:         make([]TelegramRoute, 0),
+		fsm:            fsm,
+		locker:         locker,
+		userRepository: repository,
 	}
 }
 
@@ -75,7 +75,7 @@ func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.
 
 		slog.InfoContext(ctx, "Handling update")
 
-		user, err := r.repository.UserByTelegramID(update.Message.From.ID)
+		user, err := r.userRepository.UserByTelegramID(update.Message.From.ID)
 
 		if errors.Is(err, core.ErrUserNotFound) {
 			slog.WarnContext(ctx, "User not found, creating new user")
@@ -91,7 +91,7 @@ func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.
 				return fmt.Errorf("failed to create new user model: %w", err)
 			}
 
-			err = r.repository.CreateUser(newUser)
+			err = r.userRepository.CreateUser(newUser)
 			if err != nil {
 				return fmt.Errorf("failed to create new user in storage: %w", err)
 			}

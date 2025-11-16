@@ -13,7 +13,7 @@ import (
 	memoryFSM "whitelist/internal/fsm/memory"
 	"whitelist/internal/handlers"
 	memoryLocker "whitelist/internal/locker/memory"
-	memoryRepository "whitelist/internal/repository/memory"
+	memoryUserRepository "whitelist/internal/repository/user/memory"
 	"whitelist/internal/router"
 	"whitelist/internal/router/matcher"
 
@@ -36,7 +36,7 @@ func main() {
 
 	lockerService := memoryLocker.NewMemoryLocker()
 	fsmService := memoryFSM.NewMemoryFSM()
-	repositoryService := memoryRepository.NewMemoryRepository()
+	repositoryService := memoryUserRepository.NewMemoryUserRepository()
 	mainRouter := router.NewTelegramRouter(fsmService, lockerService, repositoryService)
 
 	h := handlers.New(repositoryService)
