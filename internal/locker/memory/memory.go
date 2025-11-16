@@ -19,24 +19,30 @@ func NewMemoryLocker() *MemoryLocker {
 
 func (l *MemoryLocker) Lock(userID domainUser.UserID) error {
 	l.mu.Lock()
-	defer l.mu.Unlock()
 
-	if _, ok := l.locks[userID]; !ok {
+	userLock, ok := l.locks[userID]
+	if !ok {
 		l.locks[userID] = &sync.RWMutex{}
+		userLock = l.locks[userID]
 	}
 
-	l.locks[userID].Lock()
+	l.mu.Unlock()
+
+	userLock.Lock()
 	return nil
 }
 
 func (l *MemoryLocker) Unlock(userID domainUser.UserID) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.mu.RLock()
 
-	if _, ok := l.locks[userID]; !ok {
+	userLock, ok := l.locks[userID]
+
+	l.mu.RUnlock()
+
+	if !ok {
 		return fmt.Errorf("user lock not found")
 	}
 
-	l.locks[userID].Unlock()
+	userLock.Unlock()
 	return nil
 }
