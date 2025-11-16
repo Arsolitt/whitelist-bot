@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -12,13 +11,13 @@ import (
 	"whitelist/internal/core/logger"
 	"whitelist/internal/fsm"
 	memoryFSM "whitelist/internal/fsm/memory"
+	"whitelist/internal/handlers"
 	memoryLocker "whitelist/internal/locker/memory"
-	"whitelist/internal/msgs"
 	memoryRepository "whitelist/internal/repository/memory"
 	"whitelist/internal/router"
+	"whitelist/internal/router/matcher"
 
 	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
 )
 
 func main() {
@@ -40,73 +39,22 @@ func main() {
 	repositoryService := memoryRepository.NewMemoryRepository()
 	mainRouter := router.NewTelegramRouter(fsmService, lockerService, repositoryService)
 
-	mainRouter.AddRoute(func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
-		return update.Message.Text == "/start"
-	}, func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   "Вы зарегистрированы в боте!",
-			ReplyMarkup: &models.ReplyKeyboardMarkup{
-				Keyboard: [][]models.KeyboardButton{
-					{
-						{Text: "/info"},
-					},
-				},
-				ResizeKeyboard: true,
-			},
-		})
-		return fsm.StateIdle, nil
-	})
+	h := handlers.New(repositoryService)
 
-	mainRouter.AddRoute(func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
-		return update.Message.Text == "/info" && state == fsm.StateIdle
-	}, func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
-		user, err := repositoryService.UserByTelegramID(update.Message.From.ID)
-		if err != nil {
-			return fsm.StateIdle, fmt.Errorf("failed to get user: %w", err)
-		}
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID:    update.Message.Chat.ID,
-			Text:      msgs.UserInfo(user),
-			ParseMode: "HTML",
-		})
-		return fsm.StateIdle, nil
-	})
+	mainRouter.AddRoute(
+		matcher.Command("start"),
+		h.Start,
+	)
 
-	// mainRouter.AddRoute(func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
-	// 	return state == fsm.StateWaitingNickname
-	// }, func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
-	// 	user, err := repositoryService.UserByTelegramID(update.Message.From.ID)
-	// 	if err != nil {
-	// 		return fsm.StateIdle, fmt.Errorf("failed to get user: %w", err)
-	// 	}
+	mainRouter.AddRoute(
+		matcher.And(matcher.Command("info"), matcher.State(fsm.StateIdle)),
+		h.Info,
+	)
 
-	// 	user.CustomName = update.Message.Text
-	// 	err = repositoryService.UpdateUser(user)
-	// 	if err != nil {
-	// 		return fsm.StateIdle, fmt.Errorf("failed to update user: %w", err)
-	// 	}
-
-	// 	b.SendMessage(ctx, &bot.SendMessageParams{
-	// 		ChatID: update.Message.Chat.ID,
-	// 		Text:   "Никнейм успешно обновлен",
-	// 	})
-
-	// 	return fsm.StateIdle, nil
-	// })
-
-	mainRouter.AddRoute(func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
-		return state == fsm.StateIdle
-	}, func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
-		if update.Message.Text == "err" {
-			return fsm.StateIdle, fmt.Errorf("test error")
-		}
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   update.Message.Text,
-		})
-		return fsm.StateIdle, nil
-	})
+	mainRouter.AddRoute(
+		matcher.State(fsm.StateIdle),
+		h.Echo,
+	)
 
 	opts := []bot.Option{
 		bot.WithDefaultHandler(mainRouter.Handle),
