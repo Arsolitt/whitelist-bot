@@ -46,6 +46,14 @@ func main() {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
 			Text:   "Вы зарегистрированы в боте!",
+			ReplyMarkup: &models.ReplyKeyboardMarkup{
+				Keyboard: [][]models.KeyboardButton{
+					{
+						{Text: "/info"},
+					},
+				},
+				ResizeKeyboard: true,
+			},
 		})
 		return fsm.StateIdle, nil
 	})
