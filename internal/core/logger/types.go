@@ -30,4 +30,5 @@ const (
 	CurrentStateField    = "current_state"
 	NextStateField       = "next_state"
 	ErrorField           = "error"
+	DurationField        = "duration"
 )

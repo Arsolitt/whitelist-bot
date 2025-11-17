@@ -1,6 +1,8 @@
 package memory
 
 import (
+	"context"
+	"log/slog"
 	"sync"
 	"whitelist/internal/core"
 	domainUser "whitelist/internal/domain/user"
@@ -17,9 +19,11 @@ func NewMemoryUserRepository() *MemoryUserRepository {
 	}
 }
 
-func (r *MemoryUserRepository) UserByTelegramID(telegramID int64) (domainUser.User, error) {
+func (r *MemoryUserRepository) UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
+	slog.DebugContext(ctx, "Getting user by telegram ID")
 
 	for _, user := range r.users {
 		if user.TelegramID() == domainUser.TelegramID(telegramID) {
@@ -30,17 +34,21 @@ func (r *MemoryUserRepository) UserByTelegramID(telegramID int64) (domainUser.Us
 	return domainUser.User{}, core.ErrUserNotFound
 }
 
-func (r *MemoryUserRepository) CreateUser(user domainUser.User) error {
+func (r *MemoryUserRepository) CreateUser(ctx context.Context, user domainUser.User) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	slog.DebugContext(ctx, "Creating user")
 
 	r.users[user.ID()] = user
 	return nil
 }
 
-func (r *MemoryUserRepository) UpdateUser(user domainUser.User) error {
+func (r *MemoryUserRepository) UpdateUser(ctx context.Context, user domainUser.User) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	slog.DebugContext(ctx, "Updating user")
 
 	r.users[user.ID()] = user
 	return nil

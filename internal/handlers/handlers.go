@@ -36,7 +36,7 @@ func (h *Handlers) Start(ctx context.Context, b *bot.Bot, update *models.Update,
 }
 
 func (h *Handlers) Info(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
-	user, err := h.repo.UserByTelegramID(update.Message.From.ID)
+	user, err := h.repo.UserByTelegramID(ctx, update.Message.From.ID)
 	if err != nil {
 		return fsm.StateIdle, fmt.Errorf("failed to get user: %w", err)
 	}

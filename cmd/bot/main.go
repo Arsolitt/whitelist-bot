@@ -44,16 +44,19 @@ func main() {
 	mainRouter.AddRoute(
 		matcher.Command("start"),
 		h.Start,
+		router.DurationMiddleware,
 	)
 
 	mainRouter.AddRoute(
 		matcher.And(matcher.Command("info"), matcher.State(fsm.StateIdle)),
 		h.Info,
+		router.DurationMiddleware,
 	)
 
 	mainRouter.AddRoute(
 		matcher.State(fsm.StateIdle),
 		h.Echo,
+		router.DurationMiddleware,
 	)
 
 	opts := []bot.Option{

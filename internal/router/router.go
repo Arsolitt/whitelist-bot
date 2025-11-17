@@ -19,6 +19,8 @@ import (
 
 type HandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, currentState fsm.State) (fsm.State, error)
 
+type MiddlewareFunc func(next HandlerFunc) HandlerFunc
+
 type MatcherFunc func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool
 
 type TelegramRouter struct {
@@ -38,14 +40,16 @@ func NewTelegramRouter(fsm fsm.IFSM, locker locker.ILocker, repository userRepo.
 }
 
 type TelegramRoute struct {
-	Matcher MatcherFunc
-	Handler HandlerFunc
+	Matcher     MatcherFunc
+	Handler     HandlerFunc
+	Middlewares []MiddlewareFunc
 }
 
-func (r *TelegramRouter) AddRoute(matcher MatcherFunc, handler HandlerFunc) {
+func (r *TelegramRouter) AddRoute(matcher MatcherFunc, handler HandlerFunc, middlewares ...MiddlewareFunc) {
 	r.routes = append(r.routes, TelegramRoute{
-		Matcher: matcher,
-		Handler: handler,
+		Matcher:     matcher,
+		Handler:     handler,
+		Middlewares: middlewares,
 	})
 }
 
@@ -75,7 +79,7 @@ func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.
 
 		slog.InfoContext(ctx, "Handling update")
 
-		user, err := r.userRepository.UserByTelegramID(update.Message.From.ID)
+		user, err := r.userRepository.UserByTelegramID(ctx, update.Message.From.ID)
 
 		if errors.Is(err, core.ErrUserNotFound) {
 			slog.WarnContext(ctx, "User not found, creating new user")
@@ -91,7 +95,7 @@ func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.
 				return fmt.Errorf("failed to create new user model: %w", err)
 			}
 
-			err = r.userRepository.CreateUser(newUser)
+			err = r.userRepository.CreateUser(ctx, newUser)
 			if err != nil {
 				return fmt.Errorf("failed to create new user in storage: %w", err)
 			}
@@ -125,7 +129,13 @@ func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.
 
 		for _, route := range r.routes {
 			if route.Matcher(ctx, b, update, currentState) {
-				nextState, err := route.Handler(ctx, b, update, currentState)
+				handler := route.Handler
+
+				for i := len(route.Middlewares) - 1; i >= 0; i-- {
+					handler = route.Middlewares[i](handler)
+				}
+
+				nextState, err := handler(ctx, b, update, currentState)
 				ctx = logger.WithLogValue(ctx, logger.NextStateField, nextState)
 
 				if nextState != currentState {

@@ -1,9 +1,12 @@
 package repository
 
-import "whitelist/internal/domain/user"
+import (
+	"context"
+	"whitelist/internal/domain/user"
+)
 
 type IUserRepository interface {
-	UserByTelegramID(telegramID int64) (user.User, error)
-	CreateUser(user user.User) error
-	UpdateUser(user user.User) error
+	UserByTelegramID(ctx context.Context, telegramID int64) (user.User, error)
+	CreateUser(ctx context.Context, user user.User) error
+	UpdateUser(ctx context.Context, user user.User) error
 }
