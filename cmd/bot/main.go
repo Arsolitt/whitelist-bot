@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -13,11 +14,13 @@ import (
 	memoryFSM "whitelist/internal/fsm/memory"
 	"whitelist/internal/handlers"
 	memoryLocker "whitelist/internal/locker/memory"
-	memoryUserRepository "whitelist/internal/repository/user/memory"
+	"whitelist/internal/repository/user/sqlite"
 	"whitelist/internal/router"
 	"whitelist/internal/router/matcher"
 
 	"github.com/go-telegram/bot"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
@@ -36,7 +39,16 @@ func main() {
 
 	lockerService := memoryLocker.NewMemoryLocker()
 	fsmService := memoryFSM.NewMemoryFSM()
-	repositoryService := memoryUserRepository.NewMemoryUserRepository()
+	// repositoryService := memoryUserRepository.NewMemoryUserRepository()
+
+	db, err := sql.Open("sqlite3", "data/whitelist.db")
+	if err != nil {
+		slog.Error("Failed to open database", "error", err.Error())
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	repositoryService := sqlite.NewSQLiteUserRepository(db)
 	mainRouter := router.NewTelegramRouter(fsmService, lockerService, repositoryService)
 
 	mainRouter.Use(router.RecoverMiddleware)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 	"whitelist/internal/core"
 	"whitelist/internal/core/logger"
 	domainUser "whitelist/internal/domain/user"
@@ -95,10 +96,13 @@ func (r *TelegramRouter) executeRouting(ctx context.Context, b *bot.Bot, update 
 		slog.WarnContext(ctx, "User not found, creating new user")
 
 		newUser, err := domainUser.NewUserBuilder().
+			NewID().
 			TelegramID(update.Message.From.ID).
 			FirstName(update.Message.From.FirstName).
 			LastName(update.Message.From.LastName).
 			Username(update.Message.From.Username).
+			CreatedAt(time.Time{}).
+			UpdatedAt(time.Time{}).
 			Build()
 
 		if err != nil {
