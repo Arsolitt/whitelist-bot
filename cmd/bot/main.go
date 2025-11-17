@@ -39,24 +39,25 @@ func main() {
 	repositoryService := memoryUserRepository.NewMemoryUserRepository()
 	mainRouter := router.NewTelegramRouter(fsmService, lockerService, repositoryService)
 
+	mainRouter.Use(router.RecoverMiddleware)
+	mainRouter.Use(router.ContextMiddleware)
+	mainRouter.Use(router.DurationMiddleware)
+
 	h := handlers.New(repositoryService)
 
 	mainRouter.AddRoute(
 		matcher.Command("start"),
 		h.Start,
-		router.DurationMiddleware,
 	)
 
 	mainRouter.AddRoute(
 		matcher.And(matcher.Command("info"), matcher.State(fsm.StateIdle)),
 		h.Info,
-		router.DurationMiddleware,
 	)
 
 	mainRouter.AddRoute(
 		matcher.State(fsm.StateIdle),
 		h.Echo,
-		router.DurationMiddleware,
 	)
 
 	opts := []bot.Option{
