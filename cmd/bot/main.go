@@ -41,6 +41,7 @@ func main() {
 	fsmService := memoryFSM.NewMemoryFSM()
 	// repositoryService := memoryUserRepository.NewMemoryUserRepository()
 
+	// TODO: move db connection to core package
 	db, err := sql.Open("sqlite3", "data/whitelist.db")
 	if err != nil {
 		slog.Error("Failed to open database", "error", err.Error())

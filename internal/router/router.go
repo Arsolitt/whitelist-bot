@@ -91,6 +91,7 @@ func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.
 
 func (r *TelegramRouter) executeRouting(ctx context.Context, b *bot.Bot, update *models.Update) (fsm.State, error) {
 	user, err := r.userRepository.UserByTelegramID(ctx, update.Message.From.ID)
+	// TODO: add in-memory LRU cache for user uuid
 
 	if errors.Is(err, core.ErrUserNotFound) {
 		slog.WarnContext(ctx, "User not found, creating new user")

@@ -30,6 +30,10 @@ sql:
               import: "whitelist/internal/domain/user"
               type: "Username"
               pointer: true
+          - column: "users.telegram_id"
+            go_type:
+              import: "whitelist/internal/domain/user"
+              type: "TelegramID"
 # overrides:
 #   go:
 #     overrides:

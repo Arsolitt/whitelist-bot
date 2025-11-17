@@ -23,7 +23,7 @@ func (f *MemoryFSM) GetState(userID domainUser.UserID) (fsm.State, error) {
 
 	state, ok := f.states[userID]
 	if !ok {
-		return fsm.StateStart, nil
+		return fsm.StateIdle, nil
 	}
 
 	return state, nil

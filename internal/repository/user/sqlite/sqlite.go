@@ -29,7 +29,7 @@ func NewSQLiteUserRepository(db IQueryable) *SQLiteUserRepository {
 func (r *SQLiteUserRepository) UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error) {
 	q := New(r.db)
 
-	dbUser, err := q.UserByTelegramID(ctx, telegramID)
+	dbUser, err := q.UserByTelegramID(ctx, domainUser.TelegramID(telegramID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domainUser.User{}, core.ErrUserNotFound
@@ -48,7 +48,7 @@ func (r *SQLiteUserRepository) UserByTelegramID(ctx context.Context, telegramID 
 
 	user, err := domainUser.NewUserBuilder().
 		IDFromString(dbUser.ID).
-		TelegramID(dbUser.TelegramID).
+		TelegramID(int64(dbUser.TelegramID)).
 		FirstName(string(*dbUser.FirstName)).
 		LastName(string(*dbUser.LastName)).
 		Username(string(*dbUser.Username)).
@@ -71,7 +71,7 @@ func (r *SQLiteUserRepository) CreateUser(ctx context.Context, user domainUser.U
 
 	err := q.CreateUser(ctx, CreateUserParams{
 		ID:         user.ID().String(),
-		TelegramID: int64(user.TelegramID()),
+		TelegramID: user.TelegramID(),
 		FirstName:  &firstName,
 		LastName:   &lastName,
 		Username:   &username,
@@ -85,5 +85,22 @@ func (r *SQLiteUserRepository) CreateUser(ctx context.Context, user domainUser.U
 }
 
 func (r *SQLiteUserRepository) UpdateUser(ctx context.Context, user domainUser.User) error {
-	return errors.New("not implemented")
+	q := New(r.db)
+
+	firstName := user.FirstName()
+	lastName := user.LastName()
+	username := user.Username()
+
+	err := q.UpdateUser(ctx, UpdateUserParams{
+		ID:         user.ID().String(),
+		TelegramID: user.TelegramID(),
+		FirstName:  &firstName,
+		LastName:   &lastName,
+		Username:   &username,
+		UpdatedAt:  user.UpdatedAt().Format("2006-01-02T15:04:05-0700"),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
+	}
+	return nil
 }
