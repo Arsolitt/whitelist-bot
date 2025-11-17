@@ -2,23 +2,23 @@ package user
 
 import "github.com/google/uuid"
 
-type UserID uuid.UUID
+type ID uuid.UUID
 
-func (u UserID) String() string {
-	return uuid.UUID(u).String()
-}
-
-func (u UserID) IsZero() bool {
-	if u == UserID(uuid.Nil) || u.String() == "" {
-		return true
-	}
-	return false
-}
-
-func NewUserID() UserID {
+func NewID() ID {
 	newID, err := uuid.NewV7()
 	if err != nil {
 		newID = uuid.New()
 	}
-	return UserID(newID)
+	return ID(newID)
+}
+
+func (u ID) String() string {
+	return uuid.UUID(u).String()
+}
+
+func (u ID) IsZero() bool {
+	if u == ID(uuid.Nil) || u.String() == "" {
+		return true
+	}
+	return false
 }

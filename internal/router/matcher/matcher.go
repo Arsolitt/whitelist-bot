@@ -10,13 +10,13 @@ import (
 )
 
 func Text(text string) router.MatcherFunc {
-	return func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
+	return func(_ context.Context, _ *bot.Bot, update *models.Update, _ fsm.State) bool {
 		return update.Message.Text == text
 	}
 }
 
 func State(expectedState fsm.State) router.MatcherFunc {
-	return func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
+	return func(_ context.Context, _ *bot.Bot, _ *models.Update, state fsm.State) bool {
 		return state == expectedState
 	}
 }

@@ -16,14 +16,14 @@ type Config struct {
 }
 
 type LogsConfig struct {
-	LogLevel    string `env:"LEVEL"    env-default:"info"  validate:"oneof=debug info warn error"`
+	LogLevel    string `env:"LEVEL"        env-default:"info"  validate:"oneof=debug info warn error"`
 	IsPretty    bool   `env:"IS_PRETTY"    env-default:"true"`
 	WithContext bool   `env:"WITH_CONTEXT" env-default:"true"`
 	WithSources bool   `env:"WITH_SOURCES" env-default:"false"`
 }
 
 type DatabaseConfig struct {
-	Path         string `env:"PATH"          env-default:"whitelist.db" validate:"required"`
+	Path         string `env:"PATH"           env-default:"whitelist.db" validate:"required"`
 	MaxOpenConns int    `env:"MAX_OPEN_CONNS" env-default:"10"`
 	MaxIdleConns int    `env:"MAX_IDLE_CONNS" env-default:"5"`
 }
@@ -31,7 +31,7 @@ type DatabaseConfig struct {
 type TelegramConfig struct {
 	Token    string  `env:"TOKEN"     validate:"required"`
 	AdminIDs []int64 `env:"ADMIN_IDS" validate:"required,min=1"`
-	Debug    bool    `env:"DEBUG"     env-default:"false"`
+	Debug    bool    `env:"DEBUG"                               env-default:"false"`
 }
 
 type ServerConfig struct {

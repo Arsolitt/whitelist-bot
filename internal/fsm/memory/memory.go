@@ -6,18 +6,18 @@ import (
 	"whitelist/internal/fsm"
 )
 
-type MemoryFSM struct {
-	states map[domainUser.UserID]fsm.State
+type FSM struct {
+	states map[domainUser.ID]fsm.State
 	mu     sync.RWMutex
 }
 
-func NewMemoryFSM() *MemoryFSM {
-	return &MemoryFSM{
-		states: make(map[domainUser.UserID]fsm.State),
+func NewFSM() *FSM {
+	return &FSM{
+		states: make(map[domainUser.ID]fsm.State),
 	}
 }
 
-func (f *MemoryFSM) GetState(userID domainUser.UserID) (fsm.State, error) {
+func (f *FSM) GetState(userID domainUser.ID) (fsm.State, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 
@@ -29,7 +29,7 @@ func (f *MemoryFSM) GetState(userID domainUser.UserID) (fsm.State, error) {
 	return state, nil
 }
 
-func (f *MemoryFSM) SetState(userID domainUser.UserID, state fsm.State) error {
+func (f *FSM) SetState(userID domainUser.ID, state fsm.State) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 

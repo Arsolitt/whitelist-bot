@@ -3,6 +3,6 @@ package locker
 import domainUser "whitelist/internal/domain/user"
 
 type ILocker interface {
-	Lock(userID domainUser.UserID) error
-	Unlock(userID domainUser.UserID) error
+	Lock(userID domainUser.ID) error
+	Unlock(userID domainUser.ID) error
 }

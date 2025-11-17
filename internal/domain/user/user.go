@@ -12,7 +12,7 @@ type (
 )
 
 type User struct {
-	id         UserID
+	id         ID
 	telegramID TelegramID
 	firstName  FirstName
 	lastName   LastName
@@ -21,7 +21,7 @@ type User struct {
 	updatedAt  time.Time
 }
 
-func (u User) ID() UserID {
+func (u User) ID() ID {
 	return u.id
 }
 

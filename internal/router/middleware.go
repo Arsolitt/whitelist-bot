@@ -55,7 +55,6 @@ func ContextMiddleware(next HandlerFunc) HandlerFunc {
 		ctx = logger.WithLogValue(ctx, logger.CorrelationIDField, correlationID.String())
 
 		return next(ctx, b, update, currentState)
-
 	}
 }
 

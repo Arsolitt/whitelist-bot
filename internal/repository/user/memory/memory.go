@@ -8,18 +8,18 @@ import (
 	domainUser "whitelist/internal/domain/user"
 )
 
-type MemoryUserRepository struct {
+type UserRepository struct {
 	mu    sync.RWMutex
-	users map[domainUser.UserID]domainUser.User
+	users map[domainUser.ID]domainUser.User
 }
 
-func NewMemoryUserRepository() *MemoryUserRepository {
-	return &MemoryUserRepository{
-		users: make(map[domainUser.UserID]domainUser.User),
+func NewUserRepository() *UserRepository {
+	return &UserRepository{
+		users: make(map[domainUser.ID]domainUser.User),
 	}
 }
 
-func (r *MemoryUserRepository) UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error) {
+func (r *UserRepository) UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -34,7 +34,7 @@ func (r *MemoryUserRepository) UserByTelegramID(ctx context.Context, telegramID 
 	return domainUser.User{}, core.ErrUserNotFound
 }
 
-func (r *MemoryUserRepository) CreateUser(ctx context.Context, user domainUser.User) error {
+func (r *UserRepository) CreateUser(ctx context.Context, user domainUser.User) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -44,7 +44,7 @@ func (r *MemoryUserRepository) CreateUser(ctx context.Context, user domainUser.U
 	return nil
 }
 
-func (r *MemoryUserRepository) UpdateUser(ctx context.Context, user domainUser.User) error {
+func (r *UserRepository) UpdateUser(ctx context.Context, user domainUser.User) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

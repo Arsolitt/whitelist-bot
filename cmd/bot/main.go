@@ -14,7 +14,7 @@ import (
 	memoryFSM "whitelist/internal/fsm/memory"
 	"whitelist/internal/handlers"
 	memoryLocker "whitelist/internal/locker/memory"
-	"whitelist/internal/repository/user/sqlite"
+	sqliteUserRepository "whitelist/internal/repository/user/sqlite"
 	"whitelist/internal/router"
 	"whitelist/internal/router/matcher"
 
@@ -37,9 +37,9 @@ func main() {
 	logger.InitLogger(cfg.Logs)
 	slog.Info("Logger initialized successfully")
 
-	lockerService := memoryLocker.NewMemoryLocker()
-	fsmService := memoryFSM.NewMemoryFSM()
-	// repositoryService := memoryUserRepository.NewMemoryUserRepository()
+	lockerService := memoryLocker.NewLocker()
+	fsmService := memoryFSM.NewFSM()
+	// repositoryService := memoryUserRepository.NewUserRepository()
 
 	// TODO: move db connection to core package
 	db, err := sql.Open("sqlite3", "data/whitelist.db")
@@ -49,7 +49,7 @@ func main() {
 	}
 	defer db.Close()
 
-	repositoryService := sqlite.NewSQLiteUserRepository(db)
+	repositoryService := sqliteUserRepository.NewUserRepository(db)
 	mainRouter := router.NewTelegramRouter(fsmService, lockerService, repositoryService)
 
 	mainRouter.Use(router.RecoverMiddleware)

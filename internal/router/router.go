@@ -61,7 +61,6 @@ func (r *TelegramRouter) AddRoute(matcher MatcherFunc, handler HandlerFunc, midd
 
 func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.Update) {
 	err := func() error {
-
 		slog.InfoContext(ctx, "Handling update")
 
 		rootHandler := func(ctx context.Context, b *bot.Bot, update *models.Update, _ fsm.State) (fsm.State, error) {
@@ -90,13 +89,13 @@ func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.
 }
 
 func (r *TelegramRouter) executeRouting(ctx context.Context, b *bot.Bot, update *models.Update) (fsm.State, error) {
-	user, err := r.userRepository.UserByTelegramID(ctx, update.Message.From.ID)
+	user, repoErr := r.userRepository.UserByTelegramID(ctx, update.Message.From.ID)
 	// TODO: add in-memory LRU cache for user uuid
 
-	if errors.Is(err, core.ErrUserNotFound) {
+	if errors.Is(repoErr, core.ErrUserNotFound) {
 		slog.WarnContext(ctx, "User not found, creating new user")
 
-		newUser, err := domainUser.NewUserBuilder().
+		newUser, err := domainUser.NewBuilder().
 			NewID().
 			TelegramID(update.Message.From.ID).
 			FirstName(update.Message.From.FirstName).
@@ -116,8 +115,8 @@ func (r *TelegramRouter) executeRouting(ctx context.Context, b *bot.Bot, update 
 		}
 
 		user = newUser
-	} else if err != nil {
-		return "", fmt.Errorf("failed to get user by telegram ID: %w", err)
+	} else if repoErr != nil {
+		return "", fmt.Errorf("failed to get user by telegram ID: %w", repoErr)
 	}
 	ctx = logger.WithLogValue(ctx, logger.UserIDField, user.ID().String())
 
@@ -151,6 +150,7 @@ func (r *TelegramRouter) executeRouting(ctx context.Context, b *bot.Bot, update 
 			}
 
 			nextState, err := handler(ctx, b, update, currentState)
+			//nolint:fatcontext // loop stop after first matched route
 			ctx = logger.WithLogValue(ctx, logger.NextStateField, nextState)
 
 			if nextState != currentState {

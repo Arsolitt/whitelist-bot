@@ -12,21 +12,21 @@ import (
 
 type IQueryable interface {
 	Begin() (*sql.Tx, error)
-	ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
 	PrepareContext(context.Context, string) (*sql.Stmt, error)
-	QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error)
-	QueryRowContext(context.Context, string, ...interface{}) *sql.Row
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
-type SQLiteUserRepository struct {
+type UserRepository struct {
 	db IQueryable
 }
 
-func NewSQLiteUserRepository(db IQueryable) *SQLiteUserRepository {
-	return &SQLiteUserRepository{db: db}
+func NewUserRepository(db IQueryable) *UserRepository {
+	return &UserRepository{db: db}
 }
 
-func (r *SQLiteUserRepository) UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error) {
+func (r *UserRepository) UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error) {
 	q := New(r.db)
 
 	dbUser, err := q.UserByTelegramID(ctx, domainUser.TelegramID(telegramID))
@@ -46,7 +46,7 @@ func (r *SQLiteUserRepository) UserByTelegramID(ctx context.Context, telegramID 
 		return domainUser.User{}, fmt.Errorf("failed to parse updatedAt: %w", err)
 	}
 
-	user, err := domainUser.NewUserBuilder().
+	user, err := domainUser.NewBuilder().
 		IDFromString(dbUser.ID).
 		TelegramID(int64(dbUser.TelegramID)).
 		FirstName(string(*dbUser.FirstName)).
@@ -62,7 +62,7 @@ func (r *SQLiteUserRepository) UserByTelegramID(ctx context.Context, telegramID 
 	return user, nil
 }
 
-func (r *SQLiteUserRepository) CreateUser(ctx context.Context, user domainUser.User) error {
+func (r *UserRepository) CreateUser(ctx context.Context, user domainUser.User) error {
 	q := New(r.db)
 
 	firstName := user.FirstName()
@@ -84,7 +84,7 @@ func (r *SQLiteUserRepository) CreateUser(ctx context.Context, user domainUser.U
 	return nil
 }
 
-func (r *SQLiteUserRepository) UpdateUser(ctx context.Context, user domainUser.User) error {
+func (r *UserRepository) UpdateUser(ctx context.Context, user domainUser.User) error {
 	q := New(r.db)
 
 	firstName := user.FirstName()

@@ -11,6 +11,6 @@ const (
 )
 
 type IFSM interface {
-	GetState(userID domainUser.UserID) (State, error)
-	SetState(userID domainUser.UserID, state State) error
+	GetState(userID domainUser.ID) (State, error)
+	SetState(userID domainUser.ID, state State) error
 }

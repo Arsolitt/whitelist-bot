@@ -1,23 +1,23 @@
 package memory
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 	domainUser "whitelist/internal/domain/user"
 )
 
-type MemoryLocker struct {
+type Locker struct {
 	mu    sync.RWMutex
-	locks map[domainUser.UserID]*sync.RWMutex
+	locks map[domainUser.ID]*sync.RWMutex
 }
 
-func NewMemoryLocker() *MemoryLocker {
-	return &MemoryLocker{
-		locks: make(map[domainUser.UserID]*sync.RWMutex),
+func NewLocker() *Locker {
+	return &Locker{
+		locks: make(map[domainUser.ID]*sync.RWMutex),
 	}
 }
 
-func (l *MemoryLocker) Lock(userID domainUser.UserID) error {
+func (l *Locker) Lock(userID domainUser.ID) error {
 	l.mu.Lock()
 
 	userLock, ok := l.locks[userID]
@@ -32,7 +32,7 @@ func (l *MemoryLocker) Lock(userID domainUser.UserID) error {
 	return nil
 }
 
-func (l *MemoryLocker) Unlock(userID domainUser.UserID) error {
+func (l *Locker) Unlock(userID domainUser.ID) error {
 	l.mu.RLock()
 
 	userLock, ok := l.locks[userID]
@@ -40,7 +40,7 @@ func (l *MemoryLocker) Unlock(userID domainUser.UserID) error {
 	l.mu.RUnlock()
 
 	if !ok {
-		return fmt.Errorf("user lock not found")
+		return errors.New("user lock not found")
 	}
 
 	userLock.Unlock()

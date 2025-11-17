@@ -18,6 +18,7 @@ type PrettyHandlerOptions struct {
 type PrettyHandler struct {
 	// opts PrettyHandlerOptions
 	slog.Handler
+
 	out         io.Writer
 	attrs       []slog.Attr
 	withContext bool
@@ -50,7 +51,7 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 		level = color.RedString(level)
 	}
 
-	fields := make(map[string]interface{}, r.NumAttrs())
+	fields := make(map[string]any, r.NumAttrs())
 
 	r.Attrs(func(a slog.Attr) bool {
 		fields[a.Key] = a.Value.Any()

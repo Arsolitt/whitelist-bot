@@ -43,7 +43,7 @@ func UserInfo(u user.User) string {
 	return sb.String()
 }
 
-// formatTime formats time.Time to a human-readable string
+// formatTime formats time.Time to a human-readable string.
 func formatTime(t time.Time) string {
 	return t.Format("02.01.2006 15:04:05")
 }

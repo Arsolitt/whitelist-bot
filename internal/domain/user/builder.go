@@ -8,8 +8,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type UserBuilder struct {
-	id         UserID
+const (
+	maxFirstNameLength = 64
+	maxLastNameLength  = 64
+)
+
+type Builder struct {
+	id         ID
 	telegramID TelegramID
 	firstName  FirstName
 	lastName   LastName
@@ -19,36 +24,36 @@ type UserBuilder struct {
 	updatedAt  time.Time
 }
 
-func NewUserBuilder() UserBuilder {
-	return UserBuilder{}
+func NewBuilder() Builder {
+	return Builder{}
 }
 
-func (b UserBuilder) NewID() UserBuilder {
-	b.id = NewUserID()
+func (b Builder) NewID() Builder {
+	b.id = NewID()
 	return b
 }
 
-func (b UserBuilder) IDFromString(id string) UserBuilder {
+func (b Builder) IDFromString(id string) Builder {
 	uuid, err := uuid.Parse(id)
 	if err != nil {
 		b.errors = append(b.errors, fmt.Errorf("failed to parse ID: %w", err))
 		return b
 	}
-	b.id = UserID(uuid)
+	b.id = ID(uuid)
 	return b
 }
 
-func (b UserBuilder) IDFromUUID(id uuid.UUID) UserBuilder {
-	b.id = UserID(id)
+func (b Builder) IDFromUUID(id uuid.UUID) Builder {
+	b.id = ID(id)
 	return b
 }
 
-func (b UserBuilder) ID(id UserID) UserBuilder {
+func (b Builder) ID(id ID) Builder {
 	b.id = id
 	return b
 }
 
-func (b UserBuilder) TelegramID(telegramID int64) UserBuilder {
+func (b Builder) TelegramID(telegramID int64) Builder {
 	if telegramID == 0 {
 		b.errors = append(b.errors, errors.New("telegram ID required"))
 	}
@@ -56,8 +61,8 @@ func (b UserBuilder) TelegramID(telegramID int64) UserBuilder {
 	return b
 }
 
-func (b UserBuilder) FirstName(firstName string) UserBuilder {
-	if len(firstName) > 64 {
+func (b Builder) FirstName(firstName string) Builder {
+	if len(firstName) > maxFirstNameLength {
 		firstNameRunes := []rune(firstName)
 		firstName = string(firstNameRunes[:64])
 	}
@@ -65,8 +70,8 @@ func (b UserBuilder) FirstName(firstName string) UserBuilder {
 	return b
 }
 
-func (b UserBuilder) LastName(lastName string) UserBuilder {
-	if len(lastName) > 64 {
+func (b Builder) LastName(lastName string) Builder {
+	if len(lastName) > maxLastNameLength {
 		lastNameRunes := []rune(lastName)
 		lastName = string(lastNameRunes[:64])
 	}
@@ -74,7 +79,7 @@ func (b UserBuilder) LastName(lastName string) UserBuilder {
 	return b
 }
 
-func (b UserBuilder) Username(username string) UserBuilder {
+func (b Builder) Username(username string) Builder {
 	if username == "" {
 		b.errors = append(b.errors, errors.New("username required"))
 	}
@@ -82,7 +87,7 @@ func (b UserBuilder) Username(username string) UserBuilder {
 	return b
 }
 
-func (b UserBuilder) CreatedAt(createdAt time.Time) UserBuilder {
+func (b Builder) CreatedAt(createdAt time.Time) Builder {
 	if createdAt.IsZero() {
 		createdAt = time.Now()
 	}
@@ -90,7 +95,7 @@ func (b UserBuilder) CreatedAt(createdAt time.Time) UserBuilder {
 	return b
 }
 
-func (b UserBuilder) UpdatedAt(updatedAt time.Time) UserBuilder {
+func (b Builder) UpdatedAt(updatedAt time.Time) Builder {
 	if updatedAt.IsZero() {
 		updatedAt = time.Now()
 	}
@@ -98,7 +103,7 @@ func (b UserBuilder) UpdatedAt(updatedAt time.Time) UserBuilder {
 	return b
 }
 
-func (b UserBuilder) Build() (User, error) {
+func (b Builder) Build() (User, error) {
 	if len(b.errors) > 0 {
 		return User{}, errors.Join(b.errors...)
 	}
