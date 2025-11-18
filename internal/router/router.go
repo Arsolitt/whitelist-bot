@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"whitelist/internal/core"
 	"whitelist/internal/core/logger"
+	"whitelist/internal/core/utils"
 	domainUser "whitelist/internal/domain/user"
 	"whitelist/internal/fsm"
 	"whitelist/internal/locker"
@@ -63,8 +64,20 @@ func (r *TelegramRouter) AddRoute(matcher MatcherFunc, handler HandlerFunc, midd
 }
 
 func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.Update) {
+
 	err := func() error {
-		slog.InfoContext(ctx, "Handling update")
+		ctx = logger.WithLogValue(ctx, logger.ChatIDField, update.Message.Chat.ID)
+		ctx = logger.WithLogValue(ctx, logger.UserTelegramIDField, update.Message.From.ID)
+		ctx = logger.WithLogValue(ctx, logger.UserNameField, update.Message.From.Username)
+		ctx = logger.WithLogValue(ctx, logger.UserFirstNameField, update.Message.From.FirstName)
+		ctx = logger.WithLogValue(ctx, logger.UserLastNameField, update.Message.From.LastName)
+		ctx = logger.WithLogValue(ctx, logger.UpdateIDField, update.ID)
+		ctx = logger.WithLogValue(ctx, logger.MessageIDField, update.Message.ID)
+		ctx = logger.WithLogValue(ctx, logger.MessageChatIDField, update.Message.Chat.ID)
+		ctx = logger.WithLogValue(ctx, logger.MessageChatTypeField, update.Message.Chat.Type)
+		ctx = logger.WithLogValue(ctx, logger.RequestIDField, utils.NewUniqueID().String())
+		ctx = logger.WithLogValue(ctx, logger.CorrelationIDField, utils.NewUniqueID().String())
+		slog.InfoContext(ctx, fmt.Sprintf("Handling update: %d", update.ID))
 
 		rootHandler := func(ctx context.Context, b *bot.Bot, update *models.Update, _ fsm.State) (fsm.State, error) {
 			return r.executeRouting(ctx, b, update)
@@ -78,6 +91,7 @@ func (r *TelegramRouter) Handle(ctx context.Context, b *bot.Bot, update *models.
 		return err
 	}()
 
+	slog.InfoContext(ctx, fmt.Sprintf("Update handled: %d", update.ID))
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to handle update", logger.ErrorField, err.Error())
 		_, err = b.SendMessage(ctx, &bot.SendMessageParams{

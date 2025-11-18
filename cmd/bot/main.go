@@ -53,7 +53,6 @@ func main() {
 	mainRouter := router.NewTelegramRouter(fsmService, lockerService, repositoryService)
 
 	mainRouter.Use(router.RecoverMiddleware)
-	mainRouter.Use(router.ContextMiddleware)
 	mainRouter.Use(router.DurationMiddleware)
 
 	h := handlers.New(repositoryService)
