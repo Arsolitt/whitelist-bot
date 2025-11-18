@@ -86,6 +86,21 @@ func (b Builder) ArbiterID(arbiterID ArbiterID) Builder {
 	return b
 }
 
+func (b Builder) ArbiterIDFromString(arbiterID string) Builder {
+	arbiterUUID, err := utils.UUIDFromString[ID](arbiterID)
+	if err != nil {
+		b.errors = append(b.errors, fmt.Errorf("failed to parse arbiter ID: %w", err))
+		return b
+	}
+	b.arbiterID = ArbiterID(arbiterUUID)
+	return b
+}
+
+func (b Builder) ArbiterIDFromUserID(userID domainUser.ID) Builder {
+	b.arbiterID = ArbiterID(userID)
+	return b
+}
+
 func (b Builder) DeclineReason(declineReason DeclineReason) Builder {
 	b.declineReason = declineReason
 	return b

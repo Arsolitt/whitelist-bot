@@ -32,4 +32,5 @@ const (
 	ErrorField           = "error"
 	DurationField        = "duration"
 	WLRequestIDField     = "wl_request_id"
+	ArbiterIDField       = "arbiter_id"
 )

@@ -66,15 +66,20 @@ func (r *WLRequestRepository) PendingWLRequests(ctx context.Context) ([]domainWL
 	}
 	newWLRequests := make([]domainWLRequest.WLRequest, len(dbWLRequests))
 	for i, dbWLRequest := range dbWLRequests {
-		newWLRequests[i], err = domainWLRequest.NewBuilder().
+		builder := domainWLRequest.NewBuilder().
 			IDFromString(dbWLRequest.ID).
 			Status(dbWLRequest.Status).
 			DeclineReason(dbWLRequest.DeclineReason).
 			RequesterIDFromString(dbWLRequest.RequesterID).
 			Nickname(dbWLRequest.Nickname).
 			CreatedAtFromString(dbWLRequest.CreatedAt).
-			UpdatedAtFromString(dbWLRequest.UpdatedAt).
-			Build()
+			UpdatedAtFromString(dbWLRequest.UpdatedAt)
+
+		if dbWLRequest.ArbiterID != nil {
+			builder = builder.ArbiterIDFromString(*dbWLRequest.ArbiterID)
+		}
+
+		newWLRequests[i], err = builder.Build()
 		if err != nil {
 			return nil, fmt.Errorf("failed to build wl request: %w", err)
 		}
@@ -90,18 +95,98 @@ func (r *WLRequestRepository) PendingWLRequest(ctx context.Context) (domainWLReq
 		return domainWLRequest.WLRequest{}, fmt.Errorf("failed to get  pending wl request: %w", err)
 	}
 
-	wlRequest, err := domainWLRequest.NewBuilder().
+	builder := domainWLRequest.NewBuilder().
 		IDFromString(dbWLRequest.ID).
 		Status(dbWLRequest.Status).
 		DeclineReason(dbWLRequest.DeclineReason).
 		RequesterIDFromString(dbWLRequest.RequesterID).
 		Nickname(dbWLRequest.Nickname).
 		CreatedAtFromString(dbWLRequest.CreatedAt).
-		UpdatedAtFromString(dbWLRequest.UpdatedAt).
-		Build()
+		UpdatedAtFromString(dbWLRequest.UpdatedAt)
+
+	if dbWLRequest.ArbiterID != nil {
+		builder = builder.ArbiterIDFromString(*dbWLRequest.ArbiterID)
+	}
+
+	wlRequest, err := builder.Build()
 	if err != nil {
 		return domainWLRequest.WLRequest{}, fmt.Errorf("failed to build wl request: %w", err)
 	}
 
 	return wlRequest, nil
+}
+
+func (r *WLRequestRepository) WLRequestByID(ctx context.Context, id domainWLRequest.ID) (domainWLRequest.WLRequest, error) {
+	q := New(r.db)
+
+	dbWLRequest, err := q.WLRequestByID(ctx, id.String())
+	if err != nil {
+		return domainWLRequest.WLRequest{}, fmt.Errorf("failed to get wl request by id: %w", err)
+	}
+
+	builder := domainWLRequest.NewBuilder().
+		IDFromString(dbWLRequest.ID).
+		Status(dbWLRequest.Status).
+		DeclineReason(dbWLRequest.DeclineReason).
+		RequesterIDFromString(dbWLRequest.RequesterID).
+		Nickname(dbWLRequest.Nickname).
+		CreatedAtFromString(dbWLRequest.CreatedAt).
+		UpdatedAtFromString(dbWLRequest.UpdatedAt)
+
+	if dbWLRequest.ArbiterID != nil {
+		builder = builder.ArbiterIDFromString(*dbWLRequest.ArbiterID)
+	}
+
+	wlRequest, err := builder.Build()
+	if err != nil {
+		return domainWLRequest.WLRequest{}, fmt.Errorf("failed to build wl request: %w", err)
+	}
+
+	return wlRequest, nil
+}
+
+func (r *WLRequestRepository) UpdateWLRequest(ctx context.Context, wlRequest domainWLRequest.WLRequest) (domainWLRequest.WLRequest, error) {
+	q := New(r.db)
+
+	now := time.Now()
+	nowFormatted := now.Format("2006-01-02T15:04:05-0700")
+
+	var arbiterID *string
+	if !wlRequest.ArbiterID().IsZero() {
+		arbiterIDStr := wlRequest.ArbiterID().String()
+		arbiterID = &arbiterIDStr
+	}
+
+	dbWLRequest, err := q.UpdateWLRequest(ctx, UpdateWLRequestParams{
+		ID:            wlRequest.ID().String(),
+		RequesterID:   wlRequest.RequesterID().String(),
+		Nickname:      wlRequest.Nickname(),
+		Status:        wlRequest.Status(),
+		DeclineReason: wlRequest.DeclineReason(),
+		ArbiterID:     arbiterID,
+		UpdatedAt:     nowFormatted,
+	})
+	if err != nil {
+		return domainWLRequest.WLRequest{}, fmt.Errorf("failed to update wl request: %w", err)
+	}
+
+	builder := domainWLRequest.NewBuilder().
+		IDFromString(dbWLRequest.ID).
+		Status(dbWLRequest.Status).
+		DeclineReason(dbWLRequest.DeclineReason).
+		RequesterIDFromString(dbWLRequest.RequesterID).
+		Nickname(dbWLRequest.Nickname).
+		CreatedAtFromString(dbWLRequest.CreatedAt).
+		UpdatedAtFromString(dbWLRequest.UpdatedAt)
+
+	if dbWLRequest.ArbiterID != nil {
+		builder = builder.ArbiterIDFromString(*dbWLRequest.ArbiterID)
+	}
+
+	updatedWLRequest, err := builder.Build()
+	if err != nil {
+		return domainWLRequest.WLRequest{}, fmt.Errorf("failed to build wl request: %w", err)
+	}
+
+	return updatedWLRequest, nil
 }

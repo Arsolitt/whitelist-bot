@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"whitelist/internal/core/logger"
+	"whitelist/internal/core/utils"
 	"whitelist/internal/fsm"
 	"whitelist/internal/msgs"
 
@@ -48,7 +49,7 @@ func (h *Handlers) HandleWLRequestNickname(ctx context.Context, b *bot.Bot, upda
 		return fsm.StateWaitingWLNickname, fmt.Errorf("failed to create wl request: %w", err)
 	}
 
-	ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, dbWLRequest.ID())
+	ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, dbWLRequest.ID().String())
 
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,
@@ -112,55 +113,202 @@ func (h *Handlers) HandlePendingWLRequest(ctx context.Context, b *bot.Bot, updat
 }
 
 func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, update *models.Update) {
-	// TODO: Implement approve logic
-	// 1. Extract request ID from callback data
-	// 2. Update request status to approved
-	// 3. Send notification to requester
-	// 4. Answer callback query
+	// Extract request ID from callback data (format: "approve:uuid")
+	callbackData := update.CallbackQuery.Data
+	requestIDStr := callbackData[8:] // Remove "approve:" prefix
 
-	_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+	// Parse request ID
+	requestID, err := utils.UUIDFromString[domainWLRequest.ID](requestIDStr)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to parse request ID", logger.ErrorField, err.Error())
+		_, _ = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка: неверный ID заявки",
+			ShowAlert:       true,
+		})
+		return
+	}
+
+	ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, requestID.String())
+	slog.DebugContext(ctx, "WL request ID parsed")
+
+	// Get request from database
+	dbWLRequest, err := h.wlRequestRepo.WLRequestByID(ctx, requestID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get wl request", logger.ErrorField, err.Error())
+		_, _ = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка: заявка не найдена",
+			ShowAlert:       true,
+		})
+		return
+	}
+	slog.DebugContext(ctx, "WL request fetched from database")
+	arbiter, err := h.useRepo.UserByTelegramID(ctx, update.CallbackQuery.From.ID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get arbiter", logger.ErrorField, err.Error())
+		_, _ = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка: не удалось получить арбитра",
+			ShowAlert:       true,
+		})
+		return
+	}
+	ctx = logger.WithLogValue(ctx, logger.ArbiterIDField, arbiter.ID().String())
+	slog.DebugContext(ctx, "Arbiter fetched from database")
+
+	// Update request status to approved
+	updatedRequest, err := domainWLRequest.NewBuilder().
+		ID(dbWLRequest.ID()).
+		RequesterID(dbWLRequest.RequesterID()).
+		Nickname(dbWLRequest.Nickname()).
+		Status(domainWLRequest.StatusApproved).
+		DeclineReason(dbWLRequest.DeclineReason()).
+		ArbiterIDFromUserID(arbiter.ID()).
+		CreatedAt(dbWLRequest.CreatedAt()).
+		Build()
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to build updated request", logger.ErrorField, err.Error())
+		_, _ = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка при обновлении заявки",
+			ShowAlert:       true,
+		})
+		return
+	}
+
+	_, err = h.wlRequestRepo.UpdateWLRequest(ctx, updatedRequest)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to update wl request", logger.ErrorField, err.Error())
+		_, _ = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка при сохранении изменений",
+			ShowAlert:       true,
+		})
+		return
+	}
+
+	// Answer callback query
+	_, err = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
 		Text:            "Заявка подтверждена!",
 		ShowAlert:       false,
 	})
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to answer callback query", logger.ErrorField, err)
+		slog.ErrorContext(ctx, "Failed to answer callback query", logger.ErrorField, err.Error())
 	}
 
+	// Update message
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text:      "✅ <b>Заявка подтверждена!</b>",
+		Text:      fmt.Sprintf("✅ <b>Заявка подтверждена!</b>\n\n👤 <b>Ник:</b> %s\n🆔 <b>ID заявки:</b> <code>%s</code>", dbWLRequest.Nickname(), dbWLRequest.ID()),
 		ParseMode: "HTML",
 	})
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to edit message", logger.ErrorField, err)
+		slog.ErrorContext(ctx, "Failed to edit message", logger.ErrorField, err.Error())
 	}
+
+	// TODO: Send notification to requester
 }
 
+// TODO: rewrite routing for callback queries.
 func (h *Handlers) HandleDeclineWLRequest(ctx context.Context, b *bot.Bot, update *models.Update) {
-	// TODO: Implement decline logic
-	// 1. Extract request ID from callback data
-	// 2. Update request status to declined
-	// 3. Send notification to requester
-	// 4. Answer callback query
+	// Extract request ID from callback data (format: "decline:uuid")
+	callbackData := update.CallbackQuery.Data
+	requestIDStr := callbackData[8:] // Remove "decline:" prefix
 
-	_, err := b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+	// Parse request ID
+	requestID, err := utils.UUIDFromString[domainWLRequest.ID](requestIDStr)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to parse request ID", logger.ErrorField, err.Error())
+		_, _ = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка: неверный ID заявки",
+			ShowAlert:       true,
+		})
+		return
+	}
+
+	ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, requestID.String())
+	slog.DebugContext(ctx, "WL request ID parsed")
+
+	// Get request from database
+	dbWLRequest, err := h.wlRequestRepo.WLRequestByID(ctx, requestID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get wl request", logger.ErrorField, err.Error())
+		_, _ = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка: заявка не найдена",
+			ShowAlert:       true,
+		})
+		return
+	}
+	slog.DebugContext(ctx, "WL request fetched from database")
+	arbiter, err := h.useRepo.UserByTelegramID(ctx, update.CallbackQuery.From.ID)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get arbiter", logger.ErrorField, err.Error())
+		_, _ = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка: не удалось получить арбитра",
+			ShowAlert:       true,
+		})
+		return
+	}
+	ctx = logger.WithLogValue(ctx, logger.ArbiterIDField, arbiter.ID().String())
+	slog.DebugContext(ctx, "Arbiter fetched from database")
+
+	// Update request status to declined
+	updatedRequest, err := domainWLRequest.NewBuilder().
+		ID(dbWLRequest.ID()).
+		RequesterID(dbWLRequest.RequesterID()).
+		Nickname(dbWLRequest.Nickname()).
+		Status(domainWLRequest.StatusDeclined).
+		DeclineReason(dbWLRequest.DeclineReason()).
+		ArbiterIDFromUserID(arbiter.ID()).
+		CreatedAt(dbWLRequest.CreatedAt()).
+		Build()
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to build updated request", logger.ErrorField, err.Error())
+		_, _ = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка при обновлении заявки",
+			ShowAlert:       true,
+		})
+		return
+	}
+
+	_, err = h.wlRequestRepo.UpdateWLRequest(ctx, updatedRequest)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to update wl request", logger.ErrorField, err.Error())
+		_, _ = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка при сохранении изменений",
+			ShowAlert:       true,
+		})
+		return
+	}
+
+	// Answer callback query
+	_, err = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
 		Text:            "Заявка отклонена!",
 		ShowAlert:       false,
 	})
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to answer callback query", logger.ErrorField, err)
+		slog.ErrorContext(ctx, "Failed to answer callback query", logger.ErrorField, err.Error())
 	}
 
+	// Update message
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text:      "❌ <b>Заявка отклонена!</b>",
+		Text:      fmt.Sprintf("❌ <b>Заявка отклонена!</b>\n\n👤 <b>Ник:</b> %s\n🆔 <b>ID заявки:</b> <code>%s</code>", dbWLRequest.Nickname(), dbWLRequest.ID()),
 		ParseMode: "HTML",
 	})
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to edit message", logger.ErrorField, err)
+		slog.ErrorContext(ctx, "Failed to edit message", logger.ErrorField, err.Error())
 	}
+
+	// TODO: Send notification to requester
 }
