@@ -53,38 +53,54 @@ func (b Builder) ID(id ID) Builder {
 	return b
 }
 
-func (b Builder) TelegramID(telegramID int64) Builder {
+func (b Builder) TelegramID(telegramID TelegramID) Builder {
 	if telegramID == 0 {
 		b.errors = append(b.errors, errors.New("telegram ID required"))
 	}
-	b.telegramID = TelegramID(telegramID)
+	b.telegramID = telegramID
 	return b
 }
 
-func (b Builder) FirstName(firstName string) Builder {
+func (b Builder) TelegramIDFromInt(telegramID int64) Builder {
+	return b.TelegramID(TelegramID(telegramID))
+}
+
+func (b Builder) FirstName(firstName FirstName) Builder {
 	if len(firstName) > maxFirstNameLength {
 		firstNameRunes := []rune(firstName)
-		firstName = string(firstNameRunes[:64])
+		firstName = FirstName(firstNameRunes[:maxFirstNameLength])
 	}
-	b.firstName = FirstName(firstName)
+	b.firstName = firstName
 	return b
 }
 
-func (b Builder) LastName(lastName string) Builder {
+func (b Builder) FirstNameFromString(firstName string) Builder {
+	return b.FirstName(FirstName(firstName))
+}
+
+func (b Builder) LastName(lastName LastName) Builder {
 	if len(lastName) > maxLastNameLength {
 		lastNameRunes := []rune(lastName)
-		lastName = string(lastNameRunes[:64])
+		lastName = LastName(lastNameRunes[:maxLastNameLength])
 	}
-	b.lastName = LastName(lastName)
+	b.lastName = lastName
 	return b
 }
 
-func (b Builder) Username(username string) Builder {
+func (b Builder) LastNameFromString(lastName string) Builder {
+	return b.LastName(LastName(lastName))
+}
+
+func (b Builder) Username(username Username) Builder {
 	if username == "" {
 		b.errors = append(b.errors, errors.New("username required"))
 	}
-	b.username = Username(username)
+	b.username = username
 	return b
+}
+
+func (b Builder) UsernameFromString(username string) Builder {
+	return b.Username(Username(username))
 }
 
 func (b Builder) CreatedAt(createdAt time.Time) Builder {
@@ -109,6 +125,12 @@ func (b Builder) Build() (User, error) {
 	}
 	if b.id.IsZero() {
 		return User{}, errors.New("ID is required")
+	}
+	if b.telegramID.IsZero() {
+		return User{}, errors.New("telegram ID is required")
+	}
+	if b.username.IsZero() {
+		return User{}, errors.New("username is required")
 	}
 	if b.createdAt.IsZero() {
 		return User{}, errors.New("createdAt is required")

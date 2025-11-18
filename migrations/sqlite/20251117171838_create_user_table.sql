@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     telegram_id INTEGER UNIQUE NOT NULL,
     first_name TEXT,
     last_name TEXT,
-    username TEXT,
+    username TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now')),
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now'))
 );

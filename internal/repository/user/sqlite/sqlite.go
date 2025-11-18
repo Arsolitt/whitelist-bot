@@ -48,10 +48,10 @@ func (r *UserRepository) UserByTelegramID(ctx context.Context, telegramID int64)
 
 	user, err := domainUser.NewBuilder().
 		IDFromString(dbUser.ID).
-		TelegramID(int64(dbUser.TelegramID)).
-		FirstName(string(*dbUser.FirstName)).
-		LastName(string(*dbUser.LastName)).
-		Username(string(*dbUser.Username)).
+		TelegramID(dbUser.TelegramID).
+		FirstName(dbUser.FirstName).
+		LastName(dbUser.LastName).
+		Username(dbUser.Username).
 		CreatedAt(createdAt).
 		UpdatedAt(updatedAt).
 		Build()
@@ -65,16 +65,12 @@ func (r *UserRepository) UserByTelegramID(ctx context.Context, telegramID int64)
 func (r *UserRepository) CreateUser(ctx context.Context, user domainUser.User) error {
 	q := New(r.db)
 
-	firstName := user.FirstName()
-	lastName := user.LastName()
-	username := user.Username()
-
 	err := q.CreateUser(ctx, CreateUserParams{
 		ID:         user.ID().String(),
 		TelegramID: user.TelegramID(),
-		FirstName:  &firstName,
-		LastName:   &lastName,
-		Username:   &username,
+		FirstName:  user.FirstName(),
+		LastName:   user.LastName(),
+		Username:   user.Username(),
 		CreatedAt:  user.CreatedAt().Format("2006-01-02T15:04:05-0700"),
 		UpdatedAt:  user.UpdatedAt().Format("2006-01-02T15:04:05-0700"),
 	})
@@ -87,16 +83,12 @@ func (r *UserRepository) CreateUser(ctx context.Context, user domainUser.User) e
 func (r *UserRepository) UpdateUser(ctx context.Context, user domainUser.User) error {
 	q := New(r.db)
 
-	firstName := user.FirstName()
-	lastName := user.LastName()
-	username := user.Username()
-
 	err := q.UpdateUser(ctx, UpdateUserParams{
 		ID:         user.ID().String(),
 		TelegramID: user.TelegramID(),
-		FirstName:  &firstName,
-		LastName:   &lastName,
-		Username:   &username,
+		FirstName:  user.FirstName(),
+		LastName:   user.LastName(),
+		Username:   user.Username(),
 		UpdatedAt:  user.UpdatedAt().Format("2006-01-02T15:04:05-0700"),
 	})
 	if err != nil {

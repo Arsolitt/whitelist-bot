@@ -97,10 +97,10 @@ func (r *TelegramRouter) executeRouting(ctx context.Context, b *bot.Bot, update 
 
 		newUser, err := domainUser.NewBuilder().
 			NewID().
-			TelegramID(update.Message.From.ID).
-			FirstName(update.Message.From.FirstName).
-			LastName(update.Message.From.LastName).
-			Username(update.Message.From.Username).
+			TelegramIDFromInt(update.Message.From.ID).
+			FirstNameFromString(update.Message.From.FirstName).
+			LastNameFromString(update.Message.From.LastName).
+			UsernameFromString(update.Message.From.Username).
 			CreatedAt(time.Time{}).
 			UpdatedAt(time.Time{}).
 			Build()
