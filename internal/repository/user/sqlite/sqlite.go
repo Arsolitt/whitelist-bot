@@ -62,37 +62,69 @@ func (r *UserRepository) UserByTelegramID(ctx context.Context, telegramID int64)
 	return user, nil
 }
 
-func (r *UserRepository) CreateUser(ctx context.Context, user domainUser.User) error {
+func (r *UserRepository) CreateUser(ctx context.Context, user domainUser.User) (domainUser.User, error) {
 	q := New(r.db)
 
-	err := q.CreateUser(ctx, CreateUserParams{
+	now := time.Now()
+
+	newDBUser, err := q.CreateUser(ctx, CreateUserParams{
 		ID:         user.ID().String(),
 		TelegramID: user.TelegramID(),
 		FirstName:  user.FirstName(),
 		LastName:   user.LastName(),
 		Username:   user.Username(),
-		CreatedAt:  user.CreatedAt().Format("2006-01-02T15:04:05-0700"),
-		UpdatedAt:  user.UpdatedAt().Format("2006-01-02T15:04:05-0700"),
+		CreatedAt:  now.Format("2006-01-02T15:04:05-0700"),
+		UpdatedAt:  now.Format("2006-01-02T15:04:05-0700"),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create user: %w", err)
+		return domainUser.User{}, fmt.Errorf("failed to create user: %w", err)
 	}
-	return nil
+	newUser, err := domainUser.NewBuilder().
+		IDFromString(newDBUser.ID).
+		TelegramID(newDBUser.TelegramID).
+		FirstName(newDBUser.FirstName).
+		LastName(newDBUser.LastName).
+		Username(newDBUser.Username).
+		CreatedAt(now).
+		UpdatedAt(now).
+		Build()
+	if err != nil {
+		return domainUser.User{}, fmt.Errorf("failed to build user: %w", err)
+	}
+	return newUser, nil
 }
 
-func (r *UserRepository) UpdateUser(ctx context.Context, user domainUser.User) error {
+func (r *UserRepository) UpdateUser(ctx context.Context, user domainUser.User) (domainUser.User, error) {
 	q := New(r.db)
 
-	err := q.UpdateUser(ctx, UpdateUserParams{
+	updatedAt := time.Now()
+
+	newDBUser, err := q.UpdateUser(ctx, UpdateUserParams{
 		ID:         user.ID().String(),
 		TelegramID: user.TelegramID(),
 		FirstName:  user.FirstName(),
 		LastName:   user.LastName(),
 		Username:   user.Username(),
-		UpdatedAt:  user.UpdatedAt().Format("2006-01-02T15:04:05-0700"),
+		UpdatedAt:  updatedAt.Format("2006-01-02T15:04:05-0700"),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update user: %w", err)
+		return domainUser.User{}, fmt.Errorf("failed to update user: %w", err)
 	}
-	return nil
+	createdAt, err := time.Parse("2006-01-02T15:04:05-0700", newDBUser.CreatedAt)
+	if err != nil {
+		return domainUser.User{}, fmt.Errorf("failed to parse createdAt: %w", err)
+	}
+	newUser, err := domainUser.NewBuilder().
+		IDFromString(newDBUser.ID).
+		TelegramID(newDBUser.TelegramID).
+		FirstName(newDBUser.FirstName).
+		LastName(newDBUser.LastName).
+		Username(newDBUser.Username).
+		CreatedAt(createdAt).
+		UpdatedAt(updatedAt).
+		Build()
+	if err != nil {
+		return domainUser.User{}, fmt.Errorf("failed to build user: %w", err)
+	}
+	return newUser, nil
 }

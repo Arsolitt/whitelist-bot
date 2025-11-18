@@ -132,12 +132,12 @@ func (b Builder) Build() (User, error) {
 	if b.username.IsZero() {
 		return User{}, errors.New("username is required")
 	}
-	if b.createdAt.IsZero() {
-		return User{}, errors.New("createdAt is required")
-	}
-	if b.updatedAt.IsZero() {
-		return User{}, errors.New("updatedAt is required")
-	}
+	// if b.createdAt.IsZero() {
+	// 	return User{}, errors.New("createdAt is required")
+	// }
+	// if b.updatedAt.IsZero() {
+	// 	return User{}, errors.New("updatedAt is required")
+	// }
 
 	return User{
 		id:         b.id,

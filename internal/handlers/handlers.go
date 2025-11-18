@@ -6,17 +6,22 @@ import (
 	"fmt"
 	"whitelist/internal/fsm"
 	"whitelist/internal/msgs"
-	userRepo "whitelist/internal/repository/user"
+
+	domainUser "whitelist/internal/domain/user"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
 
-type Handlers struct {
-	repo userRepo.IUserRepository
+type iUserRepository interface {
+	UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error)
 }
 
-func New(repo userRepo.IUserRepository) *Handlers {
+type Handlers struct {
+	repo iUserRepository
+}
+
+func New(repo iUserRepository) *Handlers {
 	return &Handlers{repo: repo}
 }
 

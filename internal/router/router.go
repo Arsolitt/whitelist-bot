@@ -5,13 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"time"
 	"whitelist/internal/core"
 	"whitelist/internal/core/logger"
 	domainUser "whitelist/internal/domain/user"
 	"whitelist/internal/fsm"
 	"whitelist/internal/locker"
-	userRepo "whitelist/internal/repository/user"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -23,15 +21,20 @@ type MiddlewareFunc func(next HandlerFunc) HandlerFunc
 
 type MatcherFunc func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool
 
+type iUserRepository interface {
+	UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error)
+	CreateUser(ctx context.Context, user domainUser.User) (domainUser.User, error)
+}
+
 type TelegramRouter struct {
 	routes            []TelegramRoute
 	globalMiddlewares []MiddlewareFunc
 	fsm               fsm.IFSM
-	userRepository    userRepo.IUserRepository
+	userRepository    iUserRepository
 	locker            locker.ILocker
 }
 
-func NewTelegramRouter(fsm fsm.IFSM, locker locker.ILocker, repository userRepo.IUserRepository) *TelegramRouter {
+func NewTelegramRouter(fsm fsm.IFSM, locker locker.ILocker, repository iUserRepository) *TelegramRouter {
 	return &TelegramRouter{
 		routes:            make([]TelegramRoute, 0),
 		globalMiddlewares: make([]MiddlewareFunc, 0),
@@ -101,20 +104,18 @@ func (r *TelegramRouter) executeRouting(ctx context.Context, b *bot.Bot, update 
 			FirstNameFromString(update.Message.From.FirstName).
 			LastNameFromString(update.Message.From.LastName).
 			UsernameFromString(update.Message.From.Username).
-			CreatedAt(time.Time{}).
-			UpdatedAt(time.Time{}).
 			Build()
 
 		if err != nil {
 			return "", fmt.Errorf("failed to create new user model: %w", err)
 		}
 
-		err = r.userRepository.CreateUser(ctx, newUser)
+		newDBUser, err := r.userRepository.CreateUser(ctx, newUser)
 		if err != nil {
 			return "", fmt.Errorf("failed to create new user in storage: %w", err)
 		}
 
-		user = newUser
+		user = newDBUser
 	} else if repoErr != nil {
 		return "", fmt.Errorf("failed to get user by telegram ID: %w", repoErr)
 	}
