@@ -4,20 +4,7 @@ import (
 	"time"
 )
 
-type (
-	TelegramID int64
-	FirstName  string
-	LastName   string
-	Username   string
-)
 
-func (t TelegramID) IsZero() bool {
-	return t == 0
-}
-
-func (u Username) IsZero() bool {
-	return u == ""
-}
 
 type User struct {
 	id         ID

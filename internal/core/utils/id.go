@@ -2,23 +2,18 @@ package utils
 
 import "github.com/google/uuid"
 
-type UniqueID uuid.UUID
-
-func NewUniqueID() UniqueID {
-	id, err := uuid.NewV7()
-	if err != nil {
-		id = uuid.New()
-	}
-	return UniqueID(id)
+// UUIDBasedID - constraint для всех типов, базирующихся на uuid.UUID
+type UUIDBasedID interface {
+	~[16]byte // uuid.UUID это [16]byte под капотом
 }
 
-func (u UniqueID) String() string {
-	return uuid.UUID(u).String()
+// UUIDString - generic функция для преобразования UUID-based типов в строку
+func UUIDString[T UUIDBasedID](id T) string {
+	return uuid.UUID(id).String()
 }
 
-func (u UniqueID) IsZero() bool {
-	if u == UniqueID(uuid.Nil) || u.String() == "" {
-		return true
-	}
-	return false
+// UUIDIsZero - generic функция для проверки, является ли UUID нулевым
+func UUIDIsZero[T UUIDBasedID](id T) bool {
+	uuidVal := uuid.UUID(id)
+	return uuidVal == uuid.Nil || uuidVal.String() == ""
 }
