@@ -75,8 +75,9 @@ func main() {
 
 	mainRouter.AddRoute(
 		matcher.And(
-			matcher.Command("Посмотреть заявки"),
+			matcher.Text("Посмотреть заявки"),
 			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
+			matcher.State(fsm.StateIdle),
 		),
 		h.HandlePendingWLRequest,
 	)

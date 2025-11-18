@@ -155,9 +155,6 @@ func (b Builder) Build() (WLRequest, error) {
 	if b.nickname.IsZero() {
 		return WLRequest{}, errors.New("nickname is required")
 	}
-	if b.status.IsZero() {
-		return WLRequest{}, errors.New("status is required")
-	}
 
 	return WLRequest{
 		id:            b.id,
