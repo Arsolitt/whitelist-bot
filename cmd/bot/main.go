@@ -74,6 +74,14 @@ func main() {
 	)
 
 	mainRouter.AddRoute(
+		matcher.And(
+			matcher.Command("Посмотреть заявки"),
+			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
+		),
+		h.HandlePendingWLRequest,
+	)
+
+	mainRouter.AddRoute(
 		matcher.State(fsm.StateWaitingWLNickname),
 		h.HandleWLRequestNickname,
 	)
@@ -99,6 +107,10 @@ func main() {
 		slog.Error("Failed to create bot", "error", err)
 		os.Exit(1)
 	}
+
+	// Register callback query handlers
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "approve", bot.MatchTypePrefix, h.HandleApproveWLRequest)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "decline", bot.MatchTypePrefix, h.HandleDeclineWLRequest)
 
 	b.Start(ctx)
 }

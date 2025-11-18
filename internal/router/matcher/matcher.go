@@ -46,3 +46,14 @@ func Or(matchers ...router.MatcherFunc) router.MatcherFunc {
 func Command(cmd string) router.MatcherFunc {
 	return Text("/" + cmd)
 }
+
+func MatchTelegramIDs(ids ...int64) router.MatcherFunc {
+	return func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
+		for _, id := range ids {
+			if update.Message.From.ID == id {
+				return true
+			}
+		}
+		return false
+	}
+}

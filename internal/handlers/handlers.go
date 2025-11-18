@@ -13,6 +13,7 @@ type iUserRepository interface {
 
 type iWLRequestRepository interface {
 	CreateWLRequest(ctx context.Context, wlRequest domainWLRequest.WLRequest) (domainWLRequest.WLRequest, error)
+	PendingWLRequest(ctx context.Context) (domainWLRequest.WLRequest, error)
 }
 
 type Handlers struct {

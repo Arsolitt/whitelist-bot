@@ -81,3 +81,27 @@ func (r *WLRequestRepository) PendingWLRequests(ctx context.Context) ([]domainWL
 	}
 	return newWLRequests, nil
 }
+
+func (r *WLRequestRepository) PendingWLRequest(ctx context.Context) (domainWLRequest.WLRequest, error) {
+	q := New(r.db)
+
+	dbWLRequest, err := q.PendingWLRequest(ctx)
+	if err != nil {
+		return domainWLRequest.WLRequest{}, fmt.Errorf("failed to get  pending wl request: %w", err)
+	}
+
+	wlRequest, err := domainWLRequest.NewBuilder().
+		IDFromString(dbWLRequest.ID).
+		Status(dbWLRequest.Status).
+		DeclineReason(dbWLRequest.DeclineReason).
+		RequesterIDFromString(dbWLRequest.RequesterID).
+		Nickname(dbWLRequest.Nickname).
+		CreatedAtFromString(dbWLRequest.CreatedAt).
+		UpdatedAtFromString(dbWLRequest.UpdatedAt).
+		Build()
+	if err != nil {
+		return domainWLRequest.WLRequest{}, fmt.Errorf("failed to build wl request: %w", err)
+	}
+
+	return wlRequest, nil
+}

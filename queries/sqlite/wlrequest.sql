@@ -22,3 +22,9 @@ WHERE id = :id;
 -- name: PendingWLRequests :many
 SELECT * FROM wl_requests
 WHERE status = 'pending';
+
+-- name: PendingWLRequest :one
+SELECT * FROM wl_requests
+WHERE status = 'pending'
+ORDER BY created_at ASC
+LIMIT 1;
