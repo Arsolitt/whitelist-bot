@@ -15,6 +15,7 @@ import (
 	"whitelist/internal/handlers"
 	memoryLocker "whitelist/internal/locker/memory"
 	sqliteUserRepository "whitelist/internal/repository/user/sqlite"
+	sqliteWLRequestRepository "whitelist/internal/repository/wl_request/sqlite"
 	"whitelist/internal/router"
 	"whitelist/internal/router/matcher"
 
@@ -39,7 +40,6 @@ func main() {
 
 	lockerService := memoryLocker.NewLocker()
 	fsmService := memoryFSM.NewFSM()
-	// repositoryService := memoryUserRepository.NewUserRepository()
 
 	// TODO: move db connection to core package
 	db, err := sql.Open("sqlite3", "data/whitelist.db")
@@ -49,13 +49,14 @@ func main() {
 	}
 	defer db.Close()
 
-	repositoryService := sqliteUserRepository.NewUserRepository(db)
-	mainRouter := router.NewTelegramRouter(fsmService, lockerService, repositoryService)
+	userRepo := sqliteUserRepository.NewUserRepository(db)
+	wlRequestRepo := sqliteWLRequestRepository.NewWLRequestRepository(db)
+	mainRouter := router.NewTelegramRouter(fsmService, lockerService, userRepo)
 
 	mainRouter.Use(router.RecoverMiddleware)
 	mainRouter.Use(router.DurationMiddleware)
 
-	h := handlers.New(repositoryService)
+	h := handlers.New(userRepo, wlRequestRepo)
 
 	mainRouter.AddRoute(
 		matcher.Command("start"),
@@ -65,6 +66,16 @@ func main() {
 	mainRouter.AddRoute(
 		matcher.And(matcher.Command("info"), matcher.State(fsm.StateIdle)),
 		h.Info,
+	)
+
+	mainRouter.AddRoute(
+		matcher.And(matcher.Text("Новая заявка"), matcher.State(fsm.StateIdle)),
+		h.NewWLRequest,
+	)
+
+	mainRouter.AddRoute(
+		matcher.State(fsm.StateWaitingWLNickname),
+		h.HandleWLRequestNickname,
 	)
 
 	mainRouter.AddRoute(

@@ -3,7 +3,7 @@ sql:
   - name: "users-sqlite"
     engine: "sqlite"
     schema: "migrations/sqlite"
-    queries: "queries/sqlite"
+    queries: "queries/sqlite/user.sql"
     gen:
       go:
         emit_json_tags: true
@@ -12,20 +12,14 @@ sql:
         package: "sqlite"
         out: "internal/repository/user/sqlite"
         overrides:
-          # - column: "users.created_at"
-          #   go_type: "time.Time"
-          # - column: "users.updated_at"
-          #   go_type: "time.Time"
           - column: "users.first_name"
             go_type:
               import: "whitelist/internal/domain/user"
               type: "FirstName"
-              # pointer: true
           - column: "users.last_name"
             go_type:
               import: "whitelist/internal/domain/user"
               type: "LastName"
-              # pointer: true
           - column: "users.username"
             go_type:
               import: "whitelist/internal/domain/user"
@@ -34,6 +28,30 @@ sql:
             go_type:
               import: "whitelist/internal/domain/user"
               type: "TelegramID"
+  - name: "wlrequests-sqlite"
+    engine: "sqlite"
+    schema: "migrations/sqlite"
+    queries: "queries/sqlite/wlrequest.sql"
+    gen:
+      go:
+        emit_json_tags: true
+        emit_pointers_for_null_types: true
+        emit_prepared_queries: true
+        package: "sqlite"
+        out: "internal/repository/wl_request/sqlite"
+        overrides:
+          - column: "wl_requests.nickname"
+            go_type:
+              import: "whitelist/internal/domain/wl_request"
+              type: "Nickname"
+          - column: "wl_requests.status"
+            go_type:
+              import: "whitelist/internal/domain/wl_request"
+              type: "Status"
+          - column: "wl_requests.decline_reason"
+            go_type:
+              import: "whitelist/internal/domain/wl_request"
+              type: "DeclineReason"
 # overrides:
 #   go:
 #     overrides:

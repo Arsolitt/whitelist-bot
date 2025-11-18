@@ -5,9 +5,9 @@ import domainUser "whitelist/internal/domain/user"
 type State string
 
 const (
-	StateStart           State = "start"
-	StateIdle            State = "idle"
-	StateWaitingNickname State = "waiting_nickname"
+	StateStart             State = "start"
+	StateIdle              State = "idle"
+	StateWaitingWLNickname State = "waiting_wl_nickname"
 )
 
 type IFSM interface {

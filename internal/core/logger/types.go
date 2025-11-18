@@ -31,4 +31,5 @@ const (
 	NextStateField       = "next_state"
 	ErrorField           = "error"
 	DurationField        = "duration"
+	WLRequestIDField     = "wl_request_id"
 )

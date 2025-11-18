@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"whitelist/internal/core/utils"
 
 	"github.com/google/uuid"
 )
@@ -34,12 +35,12 @@ func (b Builder) NewID() Builder {
 }
 
 func (b Builder) IDFromString(id string) Builder {
-	uuid, err := uuid.Parse(id)
+	idUUID, err := utils.UUIDFromString[ID](id)
 	if err != nil {
 		b.errors = append(b.errors, fmt.Errorf("failed to parse ID: %w", err))
 		return b
 	}
-	b.id = ID(uuid)
+	b.id = ID(idUUID)
 	return b
 }
 

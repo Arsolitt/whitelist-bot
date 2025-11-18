@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"whitelist/internal/core/utils"
+	domainUser "whitelist/internal/domain/user"
 
 	"github.com/google/uuid"
 )
@@ -54,8 +56,28 @@ func (b Builder) RequesterID(requesterID RequesterID) Builder {
 	return b
 }
 
+func (b Builder) RequesterIDFromUserID(userID domainUser.ID) Builder {
+	b.requesterID = RequesterID(userID)
+	return b
+}
+
+func (b Builder) RequesterIDFromString(requesterID string) Builder {
+	requesterUUID, err := utils.UUIDFromString[ID](requesterID)
+	if err != nil {
+		b.errors = append(b.errors, fmt.Errorf("failed to parse ID: %w", err))
+		return b
+	}
+	b.requesterID = RequesterID(requesterUUID)
+	return b
+}
+
 func (b Builder) Nickname(nickname Nickname) Builder {
 	b.nickname = nickname
+	return b
+}
+
+func (b Builder) NicknameFromString(nickname string) Builder {
+	b.nickname = Nickname(nickname)
 	return b
 }
 
@@ -92,11 +114,31 @@ func (b Builder) CreatedAt(createdAt time.Time) Builder {
 	return b
 }
 
+func (b Builder) CreatedAtFromString(createdAt string) Builder {
+	createdAtTime, err := time.Parse("2006-01-02T15:04:05-0700", createdAt)
+	if err != nil {
+		b.errors = append(b.errors, fmt.Errorf("failed to parse createdAt: %w", err))
+		return b
+	}
+	b.createdAt = createdAtTime
+	return b
+}
+
 func (b Builder) UpdatedAt(updatedAt time.Time) Builder {
 	if updatedAt.IsZero() {
 		updatedAt = time.Now()
 	}
 	b.updatedAt = updatedAt
+	return b
+}
+
+func (b Builder) UpdatedAtFromString(updatedAt string) Builder {
+	updatedAtTime, err := time.Parse("2006-01-02T15:04:05-0700", updatedAt)
+	if err != nil {
+		b.errors = append(b.errors, fmt.Errorf("failed to parse updatedAt: %w", err))
+		return b
+	}
+	b.updatedAt = updatedAtTime
 	return b
 }
 
