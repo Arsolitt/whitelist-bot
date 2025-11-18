@@ -13,9 +13,9 @@ UPDATE users
 SET telegram_id = :telegram_id, first_name = :first_name, last_name = :last_name, username = :username, updated_at = :updated_at
 WHERE id = :id;
 
--- name: GetUserByID :one
+-- name: UserByID :one
 SELECT * FROM users
 WHERE id = :id;
 
--- name: GetAllUsers :many
+-- name: AllUsers :many
 SELECT * FROM users;
