@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 
 	"whitelist/internal/core"
@@ -53,27 +54,29 @@ func main() {
 	wlRequestRepo := sqliteWLRequestRepository.NewWLRequestRepository(db)
 	mainRouter := router.NewTelegramRouter(fsmService, lockerService, userRepo)
 
-	mainRouter.Use(router.RecoverMiddleware)
-	mainRouter.Use(router.DurationMiddleware)
+	mainRouter.UseMsgMiddleware(router.RecoverMsgMiddleware)
+	mainRouter.UseMsgMiddleware(router.DurationMsgMiddleware)
+	mainRouter.UseCallbackMiddleware(router.RecoverCallbackMiddleware)
+	mainRouter.UseCallbackMiddleware(router.DurationCallbackMiddleware)
 
 	h := handlers.New(userRepo, wlRequestRepo)
 
-	mainRouter.AddRoute(
+	mainRouter.AddMsgRoute(
 		matcher.Command("start"),
 		h.Start,
 	)
 
-	mainRouter.AddRoute(
+	mainRouter.AddMsgRoute(
 		matcher.And(matcher.Command("info"), matcher.State(fsm.StateIdle)),
 		h.Info,
 	)
 
-	mainRouter.AddRoute(
+	mainRouter.AddMsgRoute(
 		matcher.And(matcher.Text("Новая заявка"), matcher.State(fsm.StateIdle)),
 		h.NewWLRequest,
 	)
 
-	mainRouter.AddRoute(
+	mainRouter.AddMsgRoute(
 		matcher.And(
 			matcher.Text("Посмотреть заявки"),
 			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
@@ -82,18 +85,23 @@ func main() {
 		h.HandlePendingWLRequest,
 	)
 
-	mainRouter.AddRoute(
+	mainRouter.AddMsgRoute(
 		matcher.State(fsm.StateWaitingWLNickname),
 		h.HandleWLRequestNickname,
 	)
 
-	mainRouter.AddRoute(
+	mainRouter.AddMsgRoute(
 		matcher.State(fsm.StateIdle),
 		h.Echo,
 	)
 
+	mainRouter.AddCallbackRoute(
+		matcher.CallbackPrefix("approve"),
+		h.HandleApproveWLRequest,
+	)
+
 	opts := []bot.Option{
-		bot.WithDefaultHandler(mainRouter.Handle),
+		bot.WithDefaultHandler(mainRouter.HandleMsg),
 		bot.WithErrorsHandler(func(err error) {
 			if strings.Contains(err.Error(), "context canceled") {
 				slog.Info("Bot stopped")
@@ -108,10 +116,11 @@ func main() {
 		slog.Error("Failed to create bot", "error", err)
 		os.Exit(1)
 	}
+	b.RegisterHandlerRegexp(bot.HandlerTypeCallbackQueryData, regexp.MustCompile("."), mainRouter.HandleCallback)
 
 	// Register callback query handlers
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "approve", bot.MatchTypePrefix, h.HandleApproveWLRequest)
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "decline", bot.MatchTypePrefix, h.HandleDeclineWLRequest)
+	// b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "approve", bot.MatchTypePrefix, h.HandleApproveWLRequest)
+	// b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "decline", bot.MatchTypePrefix, h.HandleDeclineWLRequest)
 
 	b.Start(ctx)
 }

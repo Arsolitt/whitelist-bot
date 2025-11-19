@@ -9,19 +9,19 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-func Text(text string) router.MatcherFunc {
+func Text(text string) router.MsgMatcherFunc {
 	return func(_ context.Context, _ *bot.Bot, update *models.Update, _ fsm.State) bool {
 		return update.Message.Text == text
 	}
 }
 
-func State(expectedState fsm.State) router.MatcherFunc {
+func State(expectedState fsm.State) router.MsgMatcherFunc {
 	return func(_ context.Context, _ *bot.Bot, _ *models.Update, state fsm.State) bool {
 		return state == expectedState
 	}
 }
 
-func And(matchers ...router.MatcherFunc) router.MatcherFunc {
+func And(matchers ...router.MsgMatcherFunc) router.MsgMatcherFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
 		for _, m := range matchers {
 			if !m(ctx, b, update, state) {
@@ -32,7 +32,7 @@ func And(matchers ...router.MatcherFunc) router.MatcherFunc {
 	}
 }
 
-func Or(matchers ...router.MatcherFunc) router.MatcherFunc {
+func Or(matchers ...router.MsgMatcherFunc) router.MsgMatcherFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
 		for _, m := range matchers {
 			if m(ctx, b, update, state) {
@@ -43,11 +43,11 @@ func Or(matchers ...router.MatcherFunc) router.MatcherFunc {
 	}
 }
 
-func Command(cmd string) router.MatcherFunc {
+func Command(cmd string) router.MsgMatcherFunc {
 	return Text("/" + cmd)
 }
 
-func MatchTelegramIDs(ids ...int64) router.MatcherFunc {
+func MatchTelegramIDs(ids ...int64) router.MsgMatcherFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool {
 		for _, id := range ids {
 			if update.Message.From.ID == id {

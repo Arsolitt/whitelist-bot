@@ -112,7 +112,7 @@ func (h *Handlers) HandlePendingWLRequest(ctx context.Context, b *bot.Bot, updat
 	return state, nil
 }
 
-func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, update *models.Update) error {
 	// Extract request ID from callback data (format: "approve:uuid")
 	callbackData := update.CallbackQuery.Data
 	requestIDStr := callbackData[8:] // Remove "approve:" prefix
@@ -126,7 +126,7 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка: неверный ID заявки",
 			ShowAlert:       true,
 		})
-		return
+		return fmt.Errorf("failed to parse request ID: %w", err)
 	}
 
 	ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, requestID.String())
@@ -141,7 +141,7 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка: заявка не найдена",
 			ShowAlert:       true,
 		})
-		return
+		return fmt.Errorf("failed to get wl request: %w", err)
 	}
 	slog.DebugContext(ctx, "WL request fetched from database")
 	arbiter, err := h.useRepo.UserByTelegramID(ctx, update.CallbackQuery.From.ID)
@@ -152,7 +152,7 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка: не удалось получить арбитра",
 			ShowAlert:       true,
 		})
-		return
+		return fmt.Errorf("failed to get arbiter: %w", err)
 	}
 	ctx = logger.WithLogValue(ctx, logger.ArbiterIDField, arbiter.ID().String())
 	slog.DebugContext(ctx, "Arbiter fetched from database")
@@ -174,7 +174,7 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка при обновлении заявки",
 			ShowAlert:       true,
 		})
-		return
+		return fmt.Errorf("failed to build updated request: %w", err)
 	}
 
 	_, err = h.wlRequestRepo.UpdateWLRequest(ctx, updatedRequest)
@@ -185,7 +185,7 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка при сохранении изменений",
 			ShowAlert:       true,
 		})
-		return
+		return fmt.Errorf("failed to update wl request: %w", err)
 	}
 
 	// Answer callback query
@@ -210,6 +210,7 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 	}
 
 	// TODO: Send notification to requester
+	return nil
 }
 
 // TODO: rewrite routing for callback queries.
