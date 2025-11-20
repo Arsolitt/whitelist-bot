@@ -25,6 +25,7 @@ type iUserRepository interface {
 }
 
 type TelegramRouter struct {
+	bot            *bot.Bot
 	fsm            fsm.IFSM
 	userRepository iUserRepository
 	locker         locker.ILocker
@@ -38,6 +39,10 @@ func NewTelegramRouter(fsm fsm.IFSM, locker locker.ILocker, repository iUserRepo
 		userRepository: repository,
 		errorHandler:   errorHandler,
 	}
+}
+
+func (r *TelegramRouter) SetBot(b *bot.Bot) {
+	r.bot = b
 }
 
 func (r *TelegramRouter) WrapHandler(handler HandlerFunc) bot.HandlerFunc {
@@ -112,4 +117,28 @@ func (r *TelegramRouter) checkUser(ctx context.Context, id int64, firstName stri
 	}
 	logger.WithLogValue(ctx, logger.UserIDField, user.ID().String())
 	return user, nil
+}
+
+func (r *TelegramRouter) StateMatchFunc(expectedState fsm.State) bot.MatchFunc {
+	return func(update *models.Update) bool {
+		if update.Message == nil || update.Message.From == nil {
+			return false
+		}
+
+		user, err := r.userRepository.UserByTelegramID(context.Background(), update.Message.From.ID)
+		if err != nil {
+			return false
+		}
+
+		currentState, err := r.fsm.GetState(user.ID())
+		if err != nil {
+			return false
+		}
+
+		return currentState == expectedState
+	}
+}
+
+func (r *TelegramRouter) RegisterHandlerMatchFunc(matcher bot.MatchFunc, handler HandlerFunc) {
+	r.bot.RegisterHandlerMatchFunc(matcher, r.WrapHandler(handler))
 }

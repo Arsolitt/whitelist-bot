@@ -10,12 +10,14 @@ import (
 
 	"whitelist/internal/core"
 	"whitelist/internal/core/logger"
+	"whitelist/internal/fsm"
 	memoryFSM "whitelist/internal/fsm/memory"
 	"whitelist/internal/handlers"
 	memoryLocker "whitelist/internal/locker/memory"
 	sqliteUserRepository "whitelist/internal/repository/user/sqlite"
 	sqliteWLRequestRepository "whitelist/internal/repository/wl_request/sqlite"
 	"whitelist/internal/router"
+	"whitelist/internal/router/matcher"
 
 	"github.com/go-telegram/bot"
 
@@ -69,8 +71,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	b.RegisterHandler(bot.HandlerTypeMessageText, "info", bot.MatchTypeCommand, r.WrapHandler(h.Info))
-	b.RegisterHandler(bot.HandlerTypeMessageText, "Новая заявка", bot.MatchTypeExact, r.WrapHandler(h.NewWLRequest))
+	r.SetBot(b)
+
+	r.RegisterHandlerMatchFunc(matcher.And(matcher.Command("info"), r.StateMatchFunc(fsm.StateIdle)), h.Info)
+	// r.RegisterHandlerMatchFunc(matcher.MsgText("Новая заявка"), h.NewWLRequest)
 
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "approve", bot.MatchTypePrefix, r.WrapHandler(h.HandleApproveWLRequest))
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "decline", bot.MatchTypePrefix, h.HandleDeclineWLRequest)
