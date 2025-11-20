@@ -16,14 +16,8 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-type MsgHandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, currentState fsm.State) (fsm.State, error)
-type CallbackHandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update) error
-
-type MsgMiddlewareFunc func(next MsgHandlerFunc) MsgHandlerFunc
-type CallbackMiddlewareFunc func(next CallbackHandlerFunc) CallbackHandlerFunc
-
-type MsgMatcherFunc func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) bool
-type CallbackMatcherFunc func(ctx context.Context, b *bot.Bot, update *models.Update) bool
+type HandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, currentState fsm.State) (fsm.State, error)
+type ErrorHandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, err error)
 
 type iUserRepository interface {
 	UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error)
@@ -31,66 +25,23 @@ type iUserRepository interface {
 }
 
 type TelegramRouter struct {
-	msgRoutes                 []msgRoute
-	callbackRoutes            []callbackRoute
-	globalMsgMiddlewares      []MsgMiddlewareFunc
-	globalCallbackMiddlewares []CallbackMiddlewareFunc
-	fsm                       fsm.IFSM
-	userRepository            iUserRepository
-	locker                    locker.ILocker
+	fsm            fsm.IFSM
+	userRepository iUserRepository
+	locker         locker.ILocker
+	errorHandler   ErrorHandlerFunc
 }
 
-func NewTelegramRouter(fsm fsm.IFSM, locker locker.ILocker, repository iUserRepository) *TelegramRouter {
+func NewTelegramRouter(fsm fsm.IFSM, locker locker.ILocker, repository iUserRepository, errorHandler ErrorHandlerFunc) *TelegramRouter {
 	return &TelegramRouter{
-		msgRoutes:                 make([]msgRoute, 0),
-		callbackRoutes:            make([]callbackRoute, 0),
-		globalMsgMiddlewares:      make([]MsgMiddlewareFunc, 0),
-		globalCallbackMiddlewares: make([]CallbackMiddlewareFunc, 0),
-		fsm:                       fsm,
-		locker:                    locker,
-		userRepository:            repository,
+		fsm:            fsm,
+		locker:         locker,
+		userRepository: repository,
+		errorHandler:   errorHandler,
 	}
 }
 
-type msgRoute struct {
-	matcher     MsgMatcherFunc
-	handler     MsgHandlerFunc
-	middlewares []MsgMiddlewareFunc
-}
-
-type callbackRoute struct {
-	matcher     CallbackMatcherFunc
-	handler     CallbackHandlerFunc
-	middlewares []CallbackMiddlewareFunc
-}
-
-func (r *TelegramRouter) UseMsgMiddleware(middlewares ...MsgMiddlewareFunc) {
-	r.globalMsgMiddlewares = append(r.globalMsgMiddlewares, middlewares...)
-}
-
-func (r *TelegramRouter) UseCallbackMiddleware(middlewares ...CallbackMiddlewareFunc) {
-	r.globalCallbackMiddlewares = append(r.globalCallbackMiddlewares, middlewares...)
-}
-
-func (r *TelegramRouter) AddMsgRoute(matcher MsgMatcherFunc, handler MsgHandlerFunc, middlewares ...MsgMiddlewareFunc) {
-	r.msgRoutes = append(r.msgRoutes, msgRoute{
-		matcher:     matcher,
-		handler:     handler,
-		middlewares: middlewares,
-	})
-}
-
-func (r *TelegramRouter) AddCallbackRoute(matcher CallbackMatcherFunc, handler CallbackHandlerFunc, middlewares ...CallbackMiddlewareFunc) {
-	r.callbackRoutes = append(r.callbackRoutes, callbackRoute{
-		matcher:     matcher,
-		handler:     handler,
-		middlewares: middlewares,
-	})
-}
-
-func (r *TelegramRouter) HandleMsg(ctx context.Context, b *bot.Bot, update *models.Update) {
-
-	err := func() error {
+func (r *TelegramRouter) WrapHandler(handler HandlerFunc) bot.HandlerFunc {
+	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
 		ctx = logger.WithLogValue(ctx, logger.ChatIDField, update.Message.Chat.ID)
 		ctx = logger.WithLogValue(ctx, logger.UserTelegramIDField, update.Message.From.ID)
 		ctx = logger.WithLogValue(ctx, logger.UserNameField, update.Message.From.Username)
@@ -104,160 +55,43 @@ func (r *TelegramRouter) HandleMsg(ctx context.Context, b *bot.Bot, update *mode
 		ctx = logger.WithLogValue(ctx, logger.CorrelationIDField, utils.NewUniqueID().String())
 		slog.InfoContext(ctx, fmt.Sprintf("Handling update: %d", update.ID))
 
-		messageHandler := func(ctx context.Context, b *bot.Bot, update *models.Update, _ fsm.State) (fsm.State, error) {
-			return r.messageRouting(ctx, b, update)
-		}
-
-		for i := len(r.globalMsgMiddlewares) - 1; i >= 0; i-- {
-			messageHandler = r.globalMsgMiddlewares[i](messageHandler)
-		}
-
-		_, err := messageHandler(ctx, b, update, "")
-		return err
-	}()
-
-	slog.InfoContext(ctx, fmt.Sprintf("Update handled: %d", update.ID))
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to handle update", logger.ErrorField, err.Error())
-		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   "Произошла ошибка при обработке команды",
-		})
+		user, err := r.checkUser(ctx, update.Message.From.ID, update.Message.From.FirstName, update.Message.From.LastName, update.Message.From.Username)
 		if err != nil {
-			slog.ErrorContext(ctx, "Failed to send error message", logger.ErrorField, err)
-		}
-		return
-	}
-}
-
-func (r *TelegramRouter) HandleCallback(ctx context.Context, b *bot.Bot, update *models.Update) {
-	err := func() error {
-		ctx = logger.WithLogValue(ctx, logger.ChatIDField, update.CallbackQuery.ChatInstance)
-		ctx = logger.WithLogValue(ctx, logger.UserTelegramIDField, update.CallbackQuery.From.ID)
-		ctx = logger.WithLogValue(ctx, logger.UserNameField, update.CallbackQuery.From.Username)
-		ctx = logger.WithLogValue(ctx, logger.UserFirstNameField, update.CallbackQuery.From.FirstName)
-		ctx = logger.WithLogValue(ctx, logger.UserLastNameField, update.CallbackQuery.From.LastName)
-		ctx = logger.WithLogValue(ctx, logger.UpdateIDField, update.ID)
-		ctx = logger.WithLogValue(ctx, logger.RequestIDField, utils.NewUniqueID().String())
-		// ctx = logger.WithLogValue(ctx, logger.CorrelationIDField, utils.NewUniqueID().String())
-		slog.InfoContext(ctx, fmt.Sprintf("Handling callback query: %d", update.ID))
-
-		callbackHandler := func(ctx context.Context, b *bot.Bot, update *models.Update) error {
-			return r.callbackRouting(ctx, b, update)
+			r.errorHandler(ctx, b, update, fmt.Errorf("failed to check user: %w", err))
+			return
 		}
 
-		for i := len(r.globalCallbackMiddlewares) - 1; i >= 0; i-- {
-			callbackHandler = r.globalCallbackMiddlewares[i](callbackHandler)
+		slog.DebugContext(ctx, "Trying to lock user")
+		if err := r.locker.Lock(user.ID()); err != nil {
+			r.errorHandler(ctx, b, update, fmt.Errorf("failed to lock user: %w", err))
+			return
 		}
+		slog.DebugContext(ctx, "User locked")
+		defer r.locker.Unlock(user.ID())
 
-		err := callbackHandler(ctx, b, update)
-		return err
-	}()
-
-	slog.InfoContext(ctx, fmt.Sprintf("Callback query handled: %d", update.ID))
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to handle update", logger.ErrorField, err.Error())
-		_, err = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
-			CallbackQueryID: update.CallbackQuery.ID,
-			Text:            "Ошибка: произошла ошибка при обработке запроса",
-			ShowAlert:       true,
-		})
+		slog.DebugContext(ctx, "Trying to get user state")
+		currentState, err := r.fsm.GetState(user.ID())
 		if err != nil {
-			slog.ErrorContext(ctx, "Failed to send error message", logger.ErrorField, err)
+			slog.ErrorContext(ctx, "Failed to get user state", logger.ErrorField, err)
+			r.errorHandler(ctx, b, update, fmt.Errorf("failed to get user state: %w", err))
+			return
 		}
-		return
-	}
-}
-
-func (r *TelegramRouter) messageRouting(ctx context.Context, b *bot.Bot, update *models.Update) (fsm.State, error) {
-	user, err := r.checkUser(ctx, update.Message.From.ID, update.Message.From.FirstName, update.Message.From.LastName, update.Message.From.Username)
-	if err != nil {
-		return "", fmt.Errorf("failed to check user: %w", err)
-	}
-
-	slog.DebugContext(ctx, "Trying to lock user")
-	if err := r.locker.Lock(user.ID()); err != nil {
-		return "", fmt.Errorf("failed to lock user: %w", err)
-	}
-	slog.DebugContext(ctx, "User locked")
-	defer r.locker.Unlock(user.ID())
-
-	slog.DebugContext(ctx, "Trying to get user state")
-	currentState, err := r.fsm.GetState(user.ID())
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get user state", logger.ErrorField, err)
-		return "", fmt.Errorf("failed to get user state: %w", err)
-	}
-	ctx = logger.WithLogValue(ctx, logger.CurrentStateField, currentState)
-	slog.DebugContext(ctx, "User state got")
-
-	for _, route := range r.msgRoutes {
-		if route.matcher(ctx, b, update, currentState) {
-			handler := route.handler
-
-			for i := len(route.middlewares) - 1; i >= 0; i-- {
-				handler = route.middlewares[i](handler)
+		ctx = logger.WithLogValue(ctx, logger.CurrentStateField, currentState)
+		slog.DebugContext(ctx, "User state got")
+		nextState, err := handler(ctx, b, update, currentState)
+		if err != nil {
+			r.errorHandler(ctx, b, update, fmt.Errorf("failed to handle route: %w", err))
+			return
+		}
+		if nextState != currentState {
+			if r.fsm.SetState(user.ID(), nextState) != nil {
+				r.errorHandler(ctx, b, update, fmt.Errorf("failed to set user state: %w", err))
+				return
 			}
-
-			nextState, err := handler(ctx, b, update, currentState)
-			//nolint:fatcontext // loop stop after first matched route
 			ctx = logger.WithLogValue(ctx, logger.NextStateField, nextState)
-
-			if nextState != currentState {
-				if r.fsm.SetState(user.ID(), nextState) != nil {
-					return "", fmt.Errorf("failed to set user state: %w", err)
-				}
-				ctx = logger.WithLogValue(ctx, logger.NextStateField, nextState)
-				slog.DebugContext(ctx, "User state updated")
-			}
-			if err != nil {
-				return "", fmt.Errorf("failed to handle route: %w", err)
-			}
-			return nextState, nil
+			slog.DebugContext(ctx, "User state updated")
 		}
 	}
-	return currentState, nil
-}
-
-func (r *TelegramRouter) callbackRouting(ctx context.Context, b *bot.Bot, update *models.Update) error {
-	// user, err := r.checkUser(ctx, update.CallbackQuery.From.ID, update.CallbackQuery.From.FirstName, update.CallbackQuery.From.LastName, update.CallbackQuery.From.Username)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to check user: %w", err)
-	// }
-
-	// slog.DebugContext(ctx, "Trying to lock user")
-	// if err := r.locker.Lock(user.ID()); err != nil {
-	// 	return "", fmt.Errorf("failed to lock user: %w", err)
-	// }
-	// slog.DebugContext(ctx, "User locked")
-	// defer r.locker.Unlock(user.ID())
-
-	// slog.DebugContext(ctx, "Trying to get user state")
-	// currentState, err := r.fsm.GetState(user.ID())
-	// if err != nil {
-	// 	slog.ErrorContext(ctx, "Failed to get user state", logger.ErrorField, err)
-	// 	return "", fmt.Errorf("failed to get user state: %w", err)
-	// }
-	// ctx = logger.WithLogValue(ctx, logger.CurrentStateField, currentState)
-	// slog.DebugContext(ctx, "User state got")
-
-	for _, route := range r.callbackRoutes {
-		if route.matcher(ctx, b, update) {
-			handler := route.handler
-
-			for i := len(route.middlewares) - 1; i >= 0; i-- {
-				handler = route.middlewares[i](handler)
-			}
-
-			err := handler(ctx, b, update)
-
-			if err != nil {
-				return fmt.Errorf("failed to handle route: %w", err)
-			}
-			return nil
-		}
-	}
-	return nil
 }
 
 func (r *TelegramRouter) checkUser(ctx context.Context, id int64, firstName string, lastName string, username string) (domainUser.User, error) {
