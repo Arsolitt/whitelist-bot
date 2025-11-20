@@ -4,8 +4,6 @@ import (
 	"time"
 )
 
-
-
 type User struct {
 	id         ID
 	telegramID TelegramID
@@ -42,4 +40,9 @@ func (u User) CreatedAt() time.Time {
 
 func (u User) UpdatedAt() time.Time {
 	return u.updatedAt
+}
+
+func (u User) UpdateTimestamp() User {
+	u.updatedAt = time.Now()
+	return u
 }

@@ -9,11 +9,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	maxFirstNameLength = 64
-	maxLastNameLength  = 64
-)
-
 type Builder struct {
 	id         ID
 	telegramID TelegramID
@@ -30,8 +25,7 @@ func NewBuilder() Builder {
 }
 
 func (b Builder) NewID() Builder {
-	b.id = NewID()
-	return b
+	return b.ID(ID(utils.NewUniqueID()))
 }
 
 func (b Builder) IDFromString(id string) Builder {
@@ -40,23 +34,26 @@ func (b Builder) IDFromString(id string) Builder {
 		b.errors = append(b.errors, fmt.Errorf("failed to parse ID: %w", err))
 		return b
 	}
-	b.id = ID(idUUID)
-	return b
+	return b.ID(ID(idUUID))
 }
 
 func (b Builder) IDFromUUID(id uuid.UUID) Builder {
-	b.id = ID(id)
-	return b
+	return b.ID(ID(id))
 }
 
 func (b Builder) ID(id ID) Builder {
+	if id.IsZero() {
+		b.errors = append(b.errors, errors.New("ID is required"))
+		return b
+	}
 	b.id = id
 	return b
 }
 
 func (b Builder) TelegramID(telegramID TelegramID) Builder {
-	if telegramID == 0 {
+	if telegramID.IsZero() {
 		b.errors = append(b.errors, errors.New("telegram ID required"))
+		return b
 	}
 	b.telegramID = telegramID
 	return b
@@ -93,8 +90,9 @@ func (b Builder) LastNameFromString(lastName string) Builder {
 }
 
 func (b Builder) Username(username Username) Builder {
-	if username == "" {
+	if username.IsZero() {
 		b.errors = append(b.errors, errors.New("username required"))
+		return b
 	}
 	b.username = username
 	return b
@@ -106,7 +104,8 @@ func (b Builder) UsernameFromString(username string) Builder {
 
 func (b Builder) CreatedAt(createdAt time.Time) Builder {
 	if createdAt.IsZero() {
-		createdAt = time.Now()
+		b.errors = append(b.errors, errors.New("createdAt is required"))
+		return b
 	}
 	b.createdAt = createdAt
 	return b
@@ -114,7 +113,8 @@ func (b Builder) CreatedAt(createdAt time.Time) Builder {
 
 func (b Builder) UpdatedAt(updatedAt time.Time) Builder {
 	if updatedAt.IsZero() {
-		updatedAt = time.Now()
+		b.errors = append(b.errors, errors.New("updatedAt is required"))
+		return b
 	}
 	b.updatedAt = updatedAt
 	return b
@@ -124,21 +124,6 @@ func (b Builder) Build() (User, error) {
 	if len(b.errors) > 0 {
 		return User{}, errors.Join(b.errors...)
 	}
-	if b.id.IsZero() {
-		return User{}, errors.New("ID is required")
-	}
-	if b.telegramID.IsZero() {
-		return User{}, errors.New("telegram ID is required")
-	}
-	if b.username.IsZero() {
-		return User{}, errors.New("username is required")
-	}
-	// if b.createdAt.IsZero() {
-	// 	return User{}, errors.New("createdAt is required")
-	// }
-	// if b.updatedAt.IsZero() {
-	// 	return User{}, errors.New("updatedAt is required")
-	// }
 
 	return User{
 		id:         b.id,

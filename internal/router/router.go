@@ -21,7 +21,7 @@ type ErrorHandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Updat
 
 type iUserRepository interface {
 	UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error)
-	CreateUser(ctx context.Context, user domainUser.User) (domainUser.User, error)
+	CreateUser(ctx context.Context, telegramId domainUser.TelegramID, firstName domainUser.FirstName, lastName domainUser.LastName, username domainUser.Username) (domainUser.User, error)
 }
 
 type TelegramRouter struct {
@@ -101,19 +101,7 @@ func (r *TelegramRouter) checkUser(ctx context.Context, id int64, firstName stri
 	if errors.Is(repoErr, core.ErrUserNotFound) {
 		slog.WarnContext(ctx, "User not found, creating new user")
 
-		newUser, err := domainUser.NewBuilder().
-			NewID().
-			TelegramIDFromInt(id).
-			FirstNameFromString(firstName).
-			LastNameFromString(lastName).
-			UsernameFromString(username).
-			Build()
-
-		if err != nil {
-			return domainUser.User{}, fmt.Errorf("failed to create new user model: %w", err)
-		}
-
-		newDBUser, err := r.userRepository.CreateUser(ctx, newUser)
+		newDBUser, err := r.userRepository.CreateUser(ctx, domainUser.TelegramID(id), domainUser.FirstName(firstName), domainUser.LastName(lastName), domainUser.Username(username))
 		if err != nil {
 			return domainUser.User{}, fmt.Errorf("failed to create new user in storage: %w", err)
 		}

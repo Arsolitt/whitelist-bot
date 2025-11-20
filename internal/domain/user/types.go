@@ -14,16 +14,17 @@ type (
 	Username   string
 )
 
+const (
+	maxFirstNameLength = 64
+	maxLastNameLength  = 64
+)
+
 func (t TelegramID) IsZero() bool {
-	return t == 0
+	return t <= 0
 }
 
 func (u Username) IsZero() bool {
 	return u == ""
-}
-
-func NewID() ID {
-	return ID(utils.NewUniqueID())
 }
 
 func (u ID) String() string {
