@@ -15,6 +15,9 @@ func (h Handlers) GlobalSuccessHandler(ctx context.Context, b *bot.Bot, update *
 	if update.Message == nil {
 		return
 	}
+	if msgParams == nil {
+		return
+	}
 	if state == fsm.StateIdle {
 		buttons := [][]models.KeyboardButton{
 			{

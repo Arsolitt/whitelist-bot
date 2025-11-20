@@ -251,7 +251,8 @@ func (h *Handlers) HandleDeclineWLRequest(ctx context.Context, b *bot.Bot, updat
 		RequesterID(dbWLRequest.RequesterID()).
 		Nickname(dbWLRequest.Nickname()).
 		Status(domainWLRequest.StatusDeclined).
-		DeclineReason(dbWLRequest.DeclineReason()).
+		// TODO: add decline reason from database
+		DeclineReasonFromString("Отклонено администратором").
 		ArbiterIDFromUserID(arbiter.ID()).
 		CreatedAt(dbWLRequest.CreatedAt()).
 		Build()

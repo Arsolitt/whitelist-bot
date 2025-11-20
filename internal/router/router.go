@@ -50,20 +50,38 @@ func (r *TelegramRouter) SetBot(b *bot.Bot) {
 
 func (r *TelegramRouter) WrapHandler(handler HandlerFunc) bot.HandlerFunc {
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
-		ctx = logger.WithLogValue(ctx, logger.ChatIDField, update.Message.Chat.ID)
-		ctx = logger.WithLogValue(ctx, logger.UserTelegramIDField, update.Message.From.ID)
-		ctx = logger.WithLogValue(ctx, logger.UserNameField, update.Message.From.Username)
-		ctx = logger.WithLogValue(ctx, logger.UserFirstNameField, update.Message.From.FirstName)
-		ctx = logger.WithLogValue(ctx, logger.UserLastNameField, update.Message.From.LastName)
+		var userID int64
+		var userName, firstName, lastName string
+		var chatID int64
+
+		if update.Message != nil {
+			chatID = update.Message.Chat.ID
+			userID = update.Message.From.ID
+			userName = update.Message.From.Username
+			firstName = update.Message.From.FirstName
+			lastName = update.Message.From.LastName
+			ctx = logger.WithLogValue(ctx, logger.MessageIDField, update.Message.ID)
+			ctx = logger.WithLogValue(ctx, logger.MessageChatIDField, update.Message.Chat.ID)
+			ctx = logger.WithLogValue(ctx, logger.MessageChatTypeField, update.Message.Chat.Type)
+		} else if update.CallbackQuery != nil {
+			chatID = update.CallbackQuery.Message.Message.Chat.ID
+			userID = update.CallbackQuery.From.ID
+			userName = update.CallbackQuery.From.Username
+			firstName = update.CallbackQuery.From.FirstName
+			lastName = update.CallbackQuery.From.LastName
+		}
+
+		ctx = logger.WithLogValue(ctx, logger.ChatIDField, chatID)
+		ctx = logger.WithLogValue(ctx, logger.UserTelegramIDField, userID)
+		ctx = logger.WithLogValue(ctx, logger.UserNameField, userName)
+		ctx = logger.WithLogValue(ctx, logger.UserFirstNameField, firstName)
+		ctx = logger.WithLogValue(ctx, logger.UserLastNameField, lastName)
 		ctx = logger.WithLogValue(ctx, logger.UpdateIDField, update.ID)
-		ctx = logger.WithLogValue(ctx, logger.MessageIDField, update.Message.ID)
-		ctx = logger.WithLogValue(ctx, logger.MessageChatIDField, update.Message.Chat.ID)
-		ctx = logger.WithLogValue(ctx, logger.MessageChatTypeField, update.Message.Chat.Type)
 		ctx = logger.WithLogValue(ctx, logger.RequestIDField, utils.NewUniqueID().String())
 		ctx = logger.WithLogValue(ctx, logger.CorrelationIDField, utils.NewUniqueID().String())
 		slog.InfoContext(ctx, fmt.Sprintf("Handling update: %d", update.ID))
 
-		user, err := r.checkUser(ctx, update.Message.From.ID, update.Message.From.FirstName, update.Message.From.LastName, update.Message.From.Username)
+		user, err := r.checkUser(ctx, userID, firstName, lastName, userName)
 		if err != nil {
 			r.errorHandler(ctx, b, update, fmt.Errorf("failed to check user: %w", err))
 			return
