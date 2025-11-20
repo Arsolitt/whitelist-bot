@@ -11,20 +11,20 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-func (h *Handlers) Info(ctx context.Context, b *bot.Bot, update *models.Update, currentState fsm.State) (fsm.State, error) {
+func (h *Handlers) Info(ctx context.Context, b *bot.Bot, update *models.Update, currentState fsm.State) (fsm.State, *bot.SendMessageParams, error) {
 	if currentState != fsm.StateIdle {
-		return currentState, core.ErrInvalidUserState
+		return currentState, nil, core.ErrInvalidUserState
 	}
 
 	user, err := h.useRepo.UserByTelegramID(ctx, update.Message.From.ID)
 	if err != nil {
-		return fsm.StateIdle, fmt.Errorf("failed to get user: %w", err)
+		return fsm.StateIdle, nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+	msgParams := &bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,
 		Text:      msgs.UserInfo(user),
 		ParseMode: "HTML",
-	})
-	return fsm.StateIdle, err
+	}
+	return fsm.StateIdle, msgParams, nil
 }

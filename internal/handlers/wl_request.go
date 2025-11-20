@@ -17,24 +17,20 @@ import (
 
 const PENDING_WL_REQUESTS_LIMIT = 5
 
-func (h *Handlers) NewWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, _ fsm.State) (fsm.State, error) {
-	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+func (h *Handlers) NewWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, _ fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+	msgParams := bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,
 		Text:      msgs.WaitingForNickname(),
 		ParseMode: "HTML",
-	})
-	if err != nil {
-		return fsm.StateIdle, fmt.Errorf("failed to send message: %w", err)
 	}
-	return fsm.StateWaitingWLNickname, nil
-
+	return fsm.StateWaitingWLNickname, &msgParams, nil
 }
 
-func (h *Handlers) HandleWLRequestNickname(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
+func (h *Handlers) SubmitWLRequestNickname(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
 	// TODO: add validation for nickname. Length, special characters, etc.
 	user, err := h.useRepo.UserByTelegramID(ctx, update.Message.From.ID)
 	if err != nil {
-		return fsm.StateWaitingWLNickname, fmt.Errorf("failed to get user: %w", err)
+		return fsm.StateWaitingWLNickname, nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	nickname := ""
@@ -44,37 +40,31 @@ func (h *Handlers) HandleWLRequestNickname(ctx context.Context, b *bot.Bot, upda
 
 	dbWLRequest, err := h.wlRequestRepo.CreateWLRequest(ctx, domainWLRequest.RequesterID(user.ID()), domainWLRequest.Nickname(nickname))
 	if err != nil {
-		return fsm.StateWaitingWLNickname, fmt.Errorf("failed to create wl request: %w", err)
+		return fsm.StateWaitingWLNickname, nil, fmt.Errorf("failed to create wl request: %w", err)
 	}
 
-	ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, dbWLRequest.ID().String())
+	logger.WithLogValue(ctx, logger.WLRequestIDField, dbWLRequest.ID().String())
 
-	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+	msgParams := bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,
 		Text:      msgs.WLRequestCreated(dbWLRequest),
 		ParseMode: "HTML",
-	})
-	if err != nil {
-		return fsm.StateWaitingWLNickname, fmt.Errorf("failed to send message: %w", err)
 	}
-
-	// TODO: send message to admins about new wl request. Asynchronously.
-
-	return fsm.StateIdle, err
+	return fsm.StateIdle, &msgParams, nil
 }
 
-func (h *Handlers) HandleCheckPendingWLRequests(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
+func (h *Handlers) ViewPendingWLRequests(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
 	wlRequests, err := h.wlRequestRepo.PendingWLRequests(ctx, PENDING_WL_REQUESTS_LIMIT)
 	if err != nil {
-		return state, fmt.Errorf("failed to get  pending wl request: %w", err)
+		return state, nil, fmt.Errorf("failed to get  pending wl request: %w", err)
 	}
 	if len(wlRequests) == 0 {
-		_, _ = b.SendMessage(ctx, &bot.SendMessageParams{
+		msgParams := &bot.SendMessageParams{
 			ChatID:    update.Message.Chat.ID,
 			Text:      msgs.NoPendingWLRequests(),
 			ParseMode: "HTML",
-		})
-		return state, nil
+		}
+		return state, msgParams, nil
 	}
 
 	for _, wlRequest := range wlRequests {
@@ -105,10 +95,10 @@ func (h *Handlers) HandleCheckPendingWLRequests(ctx context.Context, b *bot.Bot,
 		}
 	}
 
-	return state, nil
+	return state, nil, nil
 }
 
-func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
+func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
 	// Extract request ID from callback data (format: "approve:uuid")
 	callbackData := update.CallbackQuery.Data
 	requestIDStr := callbackData[8:] // Remove "approve:" prefix
@@ -122,7 +112,7 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка: неверный ID заявки",
 			ShowAlert:       true,
 		})
-		return state, fmt.Errorf("failed to parse request ID: %w", err)
+		return state, nil, fmt.Errorf("failed to parse request ID: %w", err)
 	}
 
 	ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, requestID.String())
@@ -137,7 +127,7 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка: заявка не найдена",
 			ShowAlert:       true,
 		})
-		return state, fmt.Errorf("failed to get wl request: %w", err)
+		return state, nil, fmt.Errorf("failed to get wl request: %w", err)
 	}
 	slog.DebugContext(ctx, "WL request fetched from database")
 	arbiter, err := h.useRepo.UserByTelegramID(ctx, update.CallbackQuery.From.ID)
@@ -148,7 +138,7 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка: не удалось получить арбитра",
 			ShowAlert:       true,
 		})
-		return state, fmt.Errorf("failed to get arbiter: %w", err)
+		return state, nil, fmt.Errorf("failed to get arbiter: %w", err)
 	}
 	ctx = logger.WithLogValue(ctx, logger.ArbiterIDField, arbiter.ID().String())
 	slog.DebugContext(ctx, "Arbiter fetched from database")
@@ -170,7 +160,7 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка при обновлении заявки",
 			ShowAlert:       true,
 		})
-		return state, fmt.Errorf("failed to build updated request: %w", err)
+		return state, nil, fmt.Errorf("failed to build updated request: %w", err)
 	}
 
 	_, err = h.wlRequestRepo.UpdateWLRequest(ctx, updatedRequest)
@@ -181,7 +171,7 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка при сохранении изменений",
 			ShowAlert:       true,
 		})
-		return state, fmt.Errorf("failed to update wl request: %w", err)
+		return state, nil, fmt.Errorf("failed to update wl request: %w", err)
 	}
 
 	// Answer callback query
@@ -206,11 +196,11 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 	}
 
 	// TODO: Send notification to requester
-	return state, nil
+	return state, nil, nil
 }
 
 // TODO: rewrite routing for callback queries.
-func (h *Handlers) HandleDeclineWLRequest(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (h *Handlers) HandleDeclineWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
 	// Extract request ID from callback data (format: "decline:uuid")
 	callbackData := update.CallbackQuery.Data
 	requestIDStr := callbackData[8:] // Remove "decline:" prefix
@@ -224,7 +214,7 @@ func (h *Handlers) HandleDeclineWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка: неверный ID заявки",
 			ShowAlert:       true,
 		})
-		return
+		return fsm.StateIdle, nil, fmt.Errorf("failed to parse request ID: %w", err)
 	}
 
 	ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, requestID.String())
@@ -239,7 +229,7 @@ func (h *Handlers) HandleDeclineWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка: заявка не найдена",
 			ShowAlert:       true,
 		})
-		return
+		return fsm.StateIdle, nil, fmt.Errorf("failed to get wl request: %w", err)
 	}
 	slog.DebugContext(ctx, "WL request fetched from database")
 	arbiter, err := h.useRepo.UserByTelegramID(ctx, update.CallbackQuery.From.ID)
@@ -250,7 +240,7 @@ func (h *Handlers) HandleDeclineWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка: не удалось получить арбитра",
 			ShowAlert:       true,
 		})
-		return
+		return fsm.StateIdle, nil, fmt.Errorf("failed to get arbiter: %w", err)
 	}
 	ctx = logger.WithLogValue(ctx, logger.ArbiterIDField, arbiter.ID().String())
 	slog.DebugContext(ctx, "Arbiter fetched from database")
@@ -272,7 +262,7 @@ func (h *Handlers) HandleDeclineWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка при обновлении заявки",
 			ShowAlert:       true,
 		})
-		return
+		return fsm.StateIdle, nil, fmt.Errorf("failed to build updated request: %w", err)
 	}
 
 	_, err = h.wlRequestRepo.UpdateWLRequest(ctx, updatedRequest)
@@ -283,7 +273,7 @@ func (h *Handlers) HandleDeclineWLRequest(ctx context.Context, b *bot.Bot, updat
 			Text:            "Ошибка при сохранении изменений",
 			ShowAlert:       true,
 		})
-		return
+		return fsm.StateIdle, nil, fmt.Errorf("failed to update wl request: %w", err)
 	}
 
 	// Answer callback query
@@ -308,4 +298,5 @@ func (h *Handlers) HandleDeclineWLRequest(ctx context.Context, b *bot.Bot, updat
 	}
 
 	// TODO: Send notification to requester
+	return fsm.StateIdle, nil, nil
 }
