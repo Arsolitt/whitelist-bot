@@ -70,9 +70,10 @@ func main() {
 	}
 
 	b.RegisterHandler(bot.HandlerTypeMessageText, "info", bot.MatchTypeCommand, r.WrapHandler(h.Info))
+	b.RegisterHandler(bot.HandlerTypeMessageText, "Новая заявка", bot.MatchTypeExact, r.WrapHandler(h.NewWLRequest))
 
-	// b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "approve", bot.MatchTypePrefix, h.HandleApproveWLRequest)
-	// b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "decline", bot.MatchTypePrefix, h.HandleDeclineWLRequest)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "approve", bot.MatchTypePrefix, r.WrapHandler(h.HandleApproveWLRequest))
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "decline", bot.MatchTypePrefix, h.HandleDeclineWLRequest)
 
 	b.Start(ctx)
 }
