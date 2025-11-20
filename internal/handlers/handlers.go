@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 
+	"whitelist/internal/core"
 	domainUser "whitelist/internal/domain/user"
 	domainWLRequest "whitelist/internal/domain/wl_request"
 )
@@ -21,8 +22,9 @@ type iWLRequestRepository interface {
 type Handlers struct {
 	useRepo       iUserRepository
 	wlRequestRepo iWLRequestRepository
+	config        core.Config
 }
 
-func New(useRepo iUserRepository, wlRequestRepo iWLRequestRepository) *Handlers {
-	return &Handlers{useRepo: useRepo, wlRequestRepo: wlRequestRepo}
+func New(useRepo iUserRepository, wlRequestRepo iWLRequestRepository, config core.Config) *Handlers {
+	return &Handlers{useRepo: useRepo, wlRequestRepo: wlRequestRepo, config: config}
 }
