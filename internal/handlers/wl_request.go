@@ -15,6 +15,8 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
+const PENDING_WL_REQUESTS_LIMIT = 5
+
 func (h *Handlers) NewWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, _ fsm.State) (fsm.State, error) {
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,
@@ -35,16 +37,12 @@ func (h *Handlers) HandleWLRequestNickname(ctx context.Context, b *bot.Bot, upda
 		return fsm.StateWaitingWLNickname, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	wlRequest, err := domainWLRequest.NewBuilder().
-		NewID().
-		RequesterIDFromUserID(user.ID()).
-		NicknameFromString(update.Message.Text).
-		Build()
-	if err != nil {
-		return fsm.StateWaitingWLNickname, fmt.Errorf("failed to build wl request: %w", err)
+	nickname := ""
+	if update.Message != nil && update.Message.Text != "" {
+		nickname = update.Message.Text
 	}
 
-	dbWLRequest, err := h.wlRequestRepo.CreateWLRequest(ctx, wlRequest)
+	dbWLRequest, err := h.wlRequestRepo.CreateWLRequest(ctx, domainWLRequest.RequesterID(user.ID()), domainWLRequest.Nickname(nickname))
 	if err != nil {
 		return fsm.StateWaitingWLNickname, fmt.Errorf("failed to create wl request: %w", err)
 	}
@@ -65,48 +63,46 @@ func (h *Handlers) HandleWLRequestNickname(ctx context.Context, b *bot.Bot, upda
 	return fsm.StateIdle, err
 }
 
-func (h *Handlers) HandlePendingWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
-	wlRequest, err := h.wlRequestRepo.PendingWLRequest(ctx)
+func (h *Handlers) HandleCheckPendingWLRequests(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, error) {
+	wlRequests, err := h.wlRequestRepo.PendingWLRequests(ctx, PENDING_WL_REQUESTS_LIMIT)
 	if err != nil {
-		// Если нет заявок, отправляем соответствующее сообщение
-		if err.Error() == "failed to get  pending wl request: sql: no rows in result set" {
-			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID:    update.Message.Chat.ID,
-				Text:      msgs.NoPendingWLRequests(),
-				ParseMode: "HTML",
-			})
-			if err != nil {
-				return state, fmt.Errorf("failed to send no requests message: %w", err)
-			}
-			return state, nil
-		}
 		return state, fmt.Errorf("failed to get  pending wl request: %w", err)
 	}
-
-	// Создаем inline клавиатуру с кнопками подтверждения и отказа
-	keyboard := &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{
-			{
-				{
-					Text:         "✅ Подтвердить",
-					CallbackData: fmt.Sprintf("approve:%s", wlRequest.ID()),
-				},
-				{
-					Text:         "❌ Отказать",
-					CallbackData: fmt.Sprintf("decline:%s", wlRequest.ID()),
-				},
-			},
-		},
+	if len(wlRequests) == 0 {
+		_, _ = b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID:    update.Message.Chat.ID,
+			Text:      msgs.NoPendingWLRequests(),
+			ParseMode: "HTML",
+		})
+		return state, nil
 	}
 
-	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:      update.Message.Chat.ID,
-		Text:        msgs.PendingWLRequest(wlRequest),
-		ParseMode:   "HTML",
-		ReplyMarkup: keyboard,
-	})
-	if err != nil {
-		return state, fmt.Errorf("failed to send message: %w", err)
+	for _, wlRequest := range wlRequests {
+		keyboard := &models.InlineKeyboardMarkup{
+			InlineKeyboard: [][]models.InlineKeyboardButton{
+				{
+					{
+						Text:         "✅ Подтвердить",
+						CallbackData: fmt.Sprintf("approve:%s", wlRequest.ID()),
+					},
+					{
+						Text:         "❌ Отказать",
+						CallbackData: fmt.Sprintf("decline:%s", wlRequest.ID()),
+					},
+				},
+			},
+		}
+
+		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID:      update.Message.Chat.ID,
+			Text:        msgs.PendingWLRequest(wlRequest),
+			ParseMode:   "HTML",
+			ReplyMarkup: keyboard,
+		})
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to send message", logger.ErrorField, err.Error())
+			continue
+		}
 	}
 
 	return state, nil

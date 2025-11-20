@@ -12,8 +12,8 @@ type iUserRepository interface {
 }
 
 type iWLRequestRepository interface {
-	CreateWLRequest(ctx context.Context, wlRequest domainWLRequest.WLRequest) (domainWLRequest.WLRequest, error)
-	PendingWLRequest(ctx context.Context) (domainWLRequest.WLRequest, error)
+	CreateWLRequest(ctx context.Context, requesterID domainWLRequest.RequesterID, nickname domainWLRequest.Nickname) (domainWLRequest.WLRequest, error)
+	PendingWLRequests(ctx context.Context, limit int64) ([]domainWLRequest.WLRequest, error)
 	WLRequestByID(ctx context.Context, id domainWLRequest.ID) (domainWLRequest.WLRequest, error)
 	UpdateWLRequest(ctx context.Context, wlRequest domainWLRequest.WLRequest) (domainWLRequest.WLRequest, error)
 }
