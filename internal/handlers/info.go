@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"whitelist/internal/core"
 	"whitelist/internal/fsm"
 	"whitelist/internal/msgs"
 
@@ -10,7 +11,11 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-func (h *Handlers) Info(ctx context.Context, b *bot.Bot, update *models.Update, _ fsm.State) (fsm.State, error) {
+func (h *Handlers) Info(ctx context.Context, b *bot.Bot, update *models.Update, currentState fsm.State) (fsm.State, error) {
+	if currentState != fsm.StateIdle {
+		return currentState, core.ErrInvalidUserState
+	}
+
 	user, err := h.useRepo.UserByTelegramID(ctx, update.Message.From.ID)
 	if err != nil {
 		return fsm.StateIdle, fmt.Errorf("failed to get user: %w", err)

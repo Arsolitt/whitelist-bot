@@ -12,12 +12,14 @@ import (
 )
 
 var (
-	ErrUnknownCommandMessage = "Неизвестная команда"
-	ErrInternalErrorMessage  = "Произошла ошибка при обработке команды"
+	ErrUnknownCommandMessage   = "Неизвестная команда"
+	ErrInternalErrorMessage    = "Произошла ошибка при обработке команды"
+	ErrInvalidUserStateMessage = "Неверное состояние пользователя"
 )
 
 var errorStatusMap = map[error]string{
-	core.ErrUnknownCommand: ErrUnknownCommandMessage,
+	core.ErrUnknownCommand:   ErrUnknownCommandMessage,
+	core.ErrInvalidUserState: ErrInvalidUserStateMessage,
 }
 
 func (h *Handlers) GlobalErrorHandler(ctx context.Context, b *bot.Bot, update *models.Update, err error) {
