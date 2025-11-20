@@ -1,11 +1,27 @@
 package wl_request
 
 import (
+	"fmt"
 	"time"
 
+	"whitelist/internal/core"
 	"whitelist/internal/core/utils"
 
 	"github.com/google/uuid"
+)
+
+const (
+	maxNicknameLength      = 20
+	maxDeclineReasonLength = 255
+)
+
+var (
+	ErrInvalidNicknameLength = func(nickaname Nickname) error {
+		return fmt.Errorf("%w: nickname: %s is too long: %d", core.ErrInvalidLength, nickaname, len(nickaname))
+	}
+	ErrInvalidDeclineReasonLength = func(length int) error {
+		return fmt.Errorf("%w: decline reason is too long: %d", core.ErrInvalidLength, length)
+	}
 )
 
 type Status string
@@ -67,5 +83,9 @@ func (u ArbiterID) IsZero() bool {
 }
 
 func (u Nickname) IsZero() bool {
+	return u == ""
+}
+
+func (u DeclineReason) IsZero() bool {
 	return u == ""
 }

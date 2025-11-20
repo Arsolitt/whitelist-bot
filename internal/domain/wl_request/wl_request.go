@@ -15,34 +15,39 @@ type WLRequest struct {
 	updatedAt     time.Time
 }
 
-func (w *WLRequest) ID() ID {
+func (w WLRequest) ID() ID {
 	return w.id
 }
 
-func (w *WLRequest) RequesterID() RequesterID {
+func (w WLRequest) RequesterID() RequesterID {
 	return w.requesterID
 }
 
-func (w *WLRequest) Nickname() Nickname {
+func (w WLRequest) Nickname() Nickname {
 	return w.nickname
 }
 
-func (w *WLRequest) Status() Status {
+func (w WLRequest) Status() Status {
 	return w.status
 }
 
-func (w *WLRequest) DeclineReason() DeclineReason {
+func (w WLRequest) DeclineReason() DeclineReason {
 	return w.declineReason
 }
 
-func (w *WLRequest) ArbiterID() ArbiterID {
+func (w WLRequest) ArbiterID() ArbiterID {
 	return w.arbiterID
 }
 
-func (w *WLRequest) CreatedAt() time.Time {
+func (w WLRequest) CreatedAt() time.Time {
 	return w.createdAt
 }
 
-func (w *WLRequest) UpdatedAt() time.Time {
+func (w WLRequest) UpdatedAt() time.Time {
 	return w.updatedAt
+}
+
+func (w WLRequest) UpdateTimestamp() WLRequest {
+	w.updatedAt = time.Now()
+	return w
 }
