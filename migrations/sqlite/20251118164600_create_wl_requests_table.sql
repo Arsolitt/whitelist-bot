@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS wl_requests (
     requester_id TEXT NOT NULL,
     nickname TEXT NOT NULL,
     status TEXT NOT NULL,
-    decline_reason TEXT,
-    arbiter_id TEXT,
+    decline_reason TEXT NOT NULL,
+    arbiter_id TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now')),
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now'))
 );

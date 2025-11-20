@@ -21,7 +21,8 @@ WHERE id = :id;
 
 -- name: PendingWLRequests :many
 SELECT * FROM wl_requests
-WHERE status = 'pending';
+WHERE status = 'pending'
+LIMIT :limit;
 
 -- name: PendingWLRequest :one
 SELECT * FROM wl_requests
