@@ -84,11 +84,14 @@ func (r *WLRequestRepository) PendingWLRequests(ctx context.Context, limit int64
 			IDFromString(dbWLRequest.ID).
 			Status(dbWLRequest.Status).
 			DeclineReason(dbWLRequest.DeclineReason).
-			ArbiterIDFromString(dbWLRequest.ArbiterID).
 			RequesterIDFromString(dbWLRequest.RequesterID).
 			Nickname(dbWLRequest.Nickname).
 			CreatedAt(createdAt).
 			UpdatedAt(updatedAt)
+
+		if dbWLRequest.ArbiterID != "" {
+			builder = builder.ArbiterIDFromString(dbWLRequest.ArbiterID)
+		}
 
 		pendingWLRequests[i], err = builder.Build()
 		if err != nil {
@@ -115,16 +118,20 @@ func (r *WLRequestRepository) WLRequestByID(ctx context.Context, id domainWLRequ
 		return domainWLRequest.WLRequest{}, fmt.Errorf("failed to parse updatedAt: %w", err)
 	}
 
-	wlRequest, err := domainWLRequest.NewBuilder().
+	builder := domainWLRequest.NewBuilder().
 		IDFromString(dbWLRequest.ID).
 		Status(dbWLRequest.Status).
 		DeclineReason(dbWLRequest.DeclineReason).
-		ArbiterIDFromString(dbWLRequest.ArbiterID).
 		RequesterIDFromString(dbWLRequest.RequesterID).
 		Nickname(dbWLRequest.Nickname).
 		CreatedAt(createdAt).
-		UpdatedAt(updatedAt).
-		Build()
+		UpdatedAt(updatedAt)
+
+	if dbWLRequest.ArbiterID != "" {
+		builder = builder.ArbiterIDFromString(dbWLRequest.ArbiterID)
+	}
+
+	wlRequest, err := builder.Build()
 	if err != nil {
 		return domainWLRequest.WLRequest{}, fmt.Errorf("failed to build wl request: %w", err)
 	}
