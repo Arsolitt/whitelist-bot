@@ -51,8 +51,8 @@ func main() {
 
 	userRepo := sqliteUserRepository.NewUserRepository(db)
 	wlRequestRepo := sqliteWLRequestRepository.NewWLRequestRepository(db)
-	h := handlers.New(userRepo, wlRequestRepo)
-	r := router.NewTelegramRouter(fsmService, lockerService, userRepo, h.GlobalErrorHandler)
+	h := handlers.New(userRepo, wlRequestRepo, cfg)
+	r := router.NewTelegramRouter(fsmService, lockerService, userRepo, h.GlobalErrorHandler, h.GlobalSuccessHandler)
 
 	opts := []bot.Option{
 		bot.WithDefaultHandler(r.WrapHandler(h.DefaultHandler)),
@@ -73,11 +73,13 @@ func main() {
 
 	r.SetBot(b)
 
-	r.RegisterHandlerMatchFunc(matcher.And(matcher.Command("info"), r.StateMatchFunc(fsm.StateIdle)), h.Info)
-	// r.RegisterHandlerMatchFunc(matcher.MsgText("Новая заявка"), h.NewWLRequest)
+	r.RegisterHandlerMatchFunc(matcher.And(matcher.MsgText(core.CommandInfo), r.StateMatchFunc(fsm.StateIdle)), h.Info)
+	r.RegisterHandlerMatchFunc(matcher.And(matcher.MsgText(core.CommandNewWLRequest), r.StateMatchFunc(fsm.StateIdle)), h.NewWLRequest)
+	r.RegisterHandlerMatchFunc(matcher.And(matcher.MsgText(core.CommandViewPendingWLRequests), r.StateMatchFunc(fsm.StateIdle)), h.ViewPendingWLRequests)
+	r.RegisterHandlerMatchFunc(r.StateMatchFunc(fsm.StateWaitingWLNickname), h.SubmitWLRequestNickname)
 
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "approve", bot.MatchTypePrefix, r.WrapHandler(h.HandleApproveWLRequest))
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "decline", bot.MatchTypePrefix, h.HandleDeclineWLRequest)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "decline", bot.MatchTypePrefix, r.WrapHandler(h.HandleDeclineWLRequest))
 
 	b.Start(ctx)
 }

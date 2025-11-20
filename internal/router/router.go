@@ -16,8 +16,9 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-type HandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, currentState fsm.State) (fsm.State, error)
+type HandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, currentState fsm.State) (fsm.State, *bot.SendMessageParams, error)
 type ErrorHandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, err error)
+type SuccessHandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State, msgParams *bot.SendMessageParams)
 
 type iUserRepository interface {
 	UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error)
@@ -30,14 +31,16 @@ type TelegramRouter struct {
 	userRepository iUserRepository
 	locker         locker.ILocker
 	errorHandler   ErrorHandlerFunc
+	successHandler SuccessHandlerFunc
 }
 
-func NewTelegramRouter(fsm fsm.IFSM, locker locker.ILocker, repository iUserRepository, errorHandler ErrorHandlerFunc) *TelegramRouter {
+func NewTelegramRouter(fsm fsm.IFSM, locker locker.ILocker, repository iUserRepository, errorHandler ErrorHandlerFunc, successHandler SuccessHandlerFunc) *TelegramRouter {
 	return &TelegramRouter{
 		fsm:            fsm,
 		locker:         locker,
 		userRepository: repository,
 		errorHandler:   errorHandler,
+		successHandler: successHandler,
 	}
 }
 
@@ -83,7 +86,7 @@ func (r *TelegramRouter) WrapHandler(handler HandlerFunc) bot.HandlerFunc {
 		}
 		ctx = logger.WithLogValue(ctx, logger.CurrentStateField, currentState)
 		slog.DebugContext(ctx, "User state got")
-		nextState, err := handler(ctx, b, update, currentState)
+		nextState, msgParams, err := handler(ctx, b, update, currentState)
 		if err != nil {
 			r.errorHandler(ctx, b, update, fmt.Errorf("failed to handle route: %w", err))
 			return
@@ -96,6 +99,8 @@ func (r *TelegramRouter) WrapHandler(handler HandlerFunc) bot.HandlerFunc {
 			ctx = logger.WithLogValue(ctx, logger.NextStateField, nextState)
 			slog.DebugContext(ctx, "User state updated")
 		}
+
+		r.successHandler(ctx, b, update, nextState, msgParams)
 	}
 }
 
