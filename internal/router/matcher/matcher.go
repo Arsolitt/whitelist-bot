@@ -67,3 +67,12 @@ func MatchTelegramIDs(ids ...int64) bot.MatchFunc {
 		return false
 	}
 }
+
+func CallbackPrefix(prefix string) bot.MatchFunc {
+	return func(update *models.Update) bool {
+		if update.CallbackQuery == nil {
+			return false
+		}
+		return strings.HasPrefix(update.CallbackQuery.Data, prefix)
+	}
+}

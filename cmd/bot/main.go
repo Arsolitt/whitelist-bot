@@ -24,6 +24,16 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// TODO: refactor FSM to store json metadata for each state.
+// TODO: add scheduler for checking pending wl requests and sending notifications to admins.
+// TODO: add notification to user when their wl request is approved or declined.
+// TODO: add validation for nickname. Length, special characters, etc.
+// TODO: refactor wl_request.go handlers for better readability.
+// TODO: add emojis to messages.
+// TODO: add middleware for checking permissions.
+// TODO: add middleware for recovering panics.
+// TODO: add requests limit for users.
+
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
@@ -75,11 +85,11 @@ func main() {
 
 	r.RegisterHandlerMatchFunc(matcher.And(matcher.MsgText(core.CommandInfo), r.StateMatchFunc(fsm.StateIdle)), h.Info)
 	r.RegisterHandlerMatchFunc(matcher.And(matcher.MsgText(core.CommandNewWLRequest), r.StateMatchFunc(fsm.StateIdle)), h.NewWLRequest)
-	r.RegisterHandlerMatchFunc(matcher.And(matcher.MsgText(core.CommandViewPendingWLRequests), r.StateMatchFunc(fsm.StateIdle)), h.ViewPendingWLRequests)
+	r.RegisterHandlerMatchFunc(matcher.And(matcher.MsgText(core.CommandViewPendingWLRequests), r.StateMatchFunc(fsm.StateIdle), matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...)), h.ViewPendingWLRequests)
 	r.RegisterHandlerMatchFunc(r.StateMatchFunc(fsm.StateWaitingWLNickname), h.SubmitWLRequestNickname)
 
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "approve", bot.MatchTypePrefix, r.WrapHandler(h.HandleApproveWLRequest))
-	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, "decline", bot.MatchTypePrefix, r.WrapHandler(h.HandleDeclineWLRequest))
+	r.RegisterHandlerMatchFunc(matcher.And(matcher.CallbackPrefix("approve"), matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...)), h.ApproveWLRequest)
+	r.RegisterHandlerMatchFunc(matcher.And(matcher.CallbackPrefix("decline"), matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...)), h.DeclineWLRequest)
 
 	b.Start(ctx)
 }

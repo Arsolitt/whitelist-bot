@@ -17,7 +17,7 @@ import (
 
 const PENDING_WL_REQUESTS_LIMIT = 5
 
-func (h *Handlers) NewWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, _ fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+func (h Handlers) NewWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, _ fsm.State) (fsm.State, *bot.SendMessageParams, error) {
 	msgParams := bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,
 		Text:      msgs.WaitingForNickname(),
@@ -26,7 +26,7 @@ func (h *Handlers) NewWLRequest(ctx context.Context, b *bot.Bot, update *models.
 	return fsm.StateWaitingWLNickname, &msgParams, nil
 }
 
-func (h *Handlers) SubmitWLRequestNickname(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+func (h Handlers) SubmitWLRequestNickname(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
 	// TODO: add validation for nickname. Length, special characters, etc.
 	user, err := h.useRepo.UserByTelegramID(ctx, update.Message.From.ID)
 	if err != nil {
@@ -53,7 +53,7 @@ func (h *Handlers) SubmitWLRequestNickname(ctx context.Context, b *bot.Bot, upda
 	return fsm.StateIdle, &msgParams, nil
 }
 
-func (h *Handlers) ViewPendingWLRequests(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+func (h Handlers) ViewPendingWLRequests(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
 	wlRequests, err := h.wlRequestRepo.PendingWLRequests(ctx, PENDING_WL_REQUESTS_LIMIT)
 	if err != nil {
 		return state, nil, fmt.Errorf("failed to get  pending wl request: %w", err)
@@ -98,7 +98,7 @@ func (h *Handlers) ViewPendingWLRequests(ctx context.Context, b *bot.Bot, update
 	return state, nil, nil
 }
 
-func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+func (h Handlers) ApproveWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
 	// Extract request ID from callback data (format: "approve:uuid")
 	callbackData := update.CallbackQuery.Data
 	requestIDStr := callbackData[8:] // Remove "approve:" prefix
@@ -200,7 +200,7 @@ func (h *Handlers) HandleApproveWLRequest(ctx context.Context, b *bot.Bot, updat
 }
 
 // TODO: rewrite routing for callback queries.
-func (h *Handlers) HandleDeclineWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+func (h Handlers) DeclineWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
 	// Extract request ID from callback data (format: "decline:uuid")
 	callbackData := update.CallbackQuery.Data
 	requestIDStr := callbackData[8:] // Remove "decline:" prefix
