@@ -1,6 +1,7 @@
 package wl_request
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -50,4 +51,21 @@ func (w WLRequest) UpdatedAt() time.Time {
 func (w WLRequest) UpdateTimestamp() WLRequest {
 	w.updatedAt = time.Now()
 	return w
+}
+
+func (w WLRequest) Approve(arbiterID ArbiterID) (WLRequest, error) {
+	newWLRequest, err := NewBuilder().
+		ID(w.ID()).
+		RequesterID(w.RequesterID()).
+		Nickname(w.Nickname()).
+		Status(StatusApproved).
+		ArbiterID(arbiterID).
+		DeclineReason(w.DeclineReason()).
+		CreatedAt(w.CreatedAt()).
+		UpdatedAt(w.UpdatedAt()).
+		Build()
+	if err != nil {
+		return WLRequest{}, fmt.Errorf("failed to approve wl request: %w", err)
+	}
+	return newWLRequest, nil
 }

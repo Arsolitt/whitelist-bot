@@ -116,3 +116,34 @@ func (r *UserRepository) UpdateUser(ctx context.Context, user domainUser.User) (
 
 	return user, nil
 }
+
+func (r *UserRepository) UserByID(ctx context.Context, id domainUser.ID) (domainUser.User, error) {
+	q := New(r.db)
+
+	dbUser, err := q.UserByID(ctx, id.String())
+	if err != nil {
+		return domainUser.User{}, fmt.Errorf("failed to get user by id: %w", err)
+	}
+	createdAt, err := time.Parse(SQLITE_TIME_FORMAT, dbUser.CreatedAt)
+	if err != nil {
+		return domainUser.User{}, fmt.Errorf("failed to parse createdAt: %w", err)
+	}
+	updatedAt, err := time.Parse(SQLITE_TIME_FORMAT, dbUser.UpdatedAt)
+	if err != nil {
+		return domainUser.User{}, fmt.Errorf("failed to parse updatedAt: %w", err)
+	}
+
+	user, err := domainUser.NewBuilder().
+		IDFromString(dbUser.ID).
+		TelegramID(dbUser.TelegramID).
+		FirstName(dbUser.FirstName).
+		LastName(dbUser.LastName).
+		Username(dbUser.Username).
+		CreatedAt(createdAt).
+		UpdatedAt(updatedAt).
+		Build()
+	if err != nil {
+		return domainUser.User{}, fmt.Errorf("failed to build user: %w", err)
+	}
+	return user, nil
+}
