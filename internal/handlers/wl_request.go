@@ -76,11 +76,11 @@ func (h Handlers) ViewPendingWLRequests(ctx context.Context, b *bot.Bot, update 
 				{
 					{
 						Text:         "✅ Подтвердить",
-						CallbackData: fmt.Sprintf("approve:%s", wlRequest.ID()),
+						CallbackData: fmt.Sprintf("approve::%s", wlRequest.ID()),
 					},
 					{
 						Text:         "❌ Отказать",
-						CallbackData: fmt.Sprintf("decline:%s", wlRequest.ID()),
+						CallbackData: fmt.Sprintf("decline::%s", wlRequest.ID()),
 					},
 				},
 			},
@@ -259,7 +259,7 @@ func (h Handlers) DeclineWLRequest(ctx context.Context, b *bot.Bot, update *mode
 	ctx = logger.WithLogValue(ctx, logger.RequesterIDField, requester.ID().String())
 	slog.DebugContext(ctx, "Requester fetched from database")
 
-	updatedRequest, err := dbWLRequest.Decline(domainWLRequest.ArbiterID(arbiter.ID()), domainWLRequest.DeclineReason("Отклонено администратором"))
+	declinedRequest, err := dbWLRequest.Decline(domainWLRequest.ArbiterID(arbiter.ID()), domainWLRequest.DeclineReason("Отклонено администратором"))
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to decline wl request", logger.ErrorField, err.Error())
 		_, _ = h.botAnswerCallbackQuery(ctx, b, &bot.AnswerCallbackQueryParams{
@@ -270,7 +270,7 @@ func (h Handlers) DeclineWLRequest(ctx context.Context, b *bot.Bot, update *mode
 		return fsm.StateIdle, nil, fmt.Errorf("failed to decline wl request: %w", err)
 	}
 
-	_, err = h.wlRequestRepo.UpdateWLRequest(ctx, updatedRequest)
+	_, err = h.wlRequestRepo.UpdateWLRequest(ctx, declinedRequest)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to update wl request", logger.ErrorField, err.Error())
 		_, _ = h.botAnswerCallbackQuery(ctx, b, &bot.AnswerCallbackQueryParams{
@@ -284,7 +284,7 @@ func (h Handlers) DeclineWLRequest(ctx context.Context, b *bot.Bot, update *mode
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
 		MessageID: update.CallbackQuery.Message.Message.ID,
-		Text:      msgs.DeclinedWLRequest(dbWLRequest, arbiter, requester),
+		Text:      msgs.DeclinedWLRequest(declinedRequest, arbiter, requester),
 		ParseMode: "HTML",
 	})
 	if err != nil {
