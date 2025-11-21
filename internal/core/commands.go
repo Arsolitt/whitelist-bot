@@ -1,9 +1,11 @@
 package core
 
 const (
-	CommandInfo                  = "Информация"
-	CommandNewWLRequest          = "Новая заявка"
-	CommandViewPendingWLRequests = "Посмотреть заявки"
-	CommandApproveWLRequest      = "Подтвердить"
-	CommandDeclineWLRequest      = "Отклонить"
+	CommandInfo                   = "Информация"
+	CommandNewWLRequest           = "Новая заявка"
+	CommandViewPendingWLRequests  = "Посмотреть заявки"
+	CommandApproveWLRequest       = "Подтвердить"
+	CommandDeclineWLRequest       = "Отклонить"
+	CommandApproveWLRequestPrefix = "approve::"
+	CommandDeclineWLRequestPrefix = "decline::"
 )

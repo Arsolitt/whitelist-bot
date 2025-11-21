@@ -24,6 +24,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// TODO: refactor callback queries to use json instead of string.
 // TODO: refactor FSM to store json metadata for each state.
 // TODO: add scheduler for checking pending wl requests and sending notifications to admins.
 // TODO: add notification to user when their wl request is approved or declined.
@@ -88,8 +89,8 @@ func main() {
 	r.RegisterHandlerMatchFunc(matcher.And(matcher.MsgText(core.CommandViewPendingWLRequests), r.StateMatchFunc(fsm.StateIdle), matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...)), h.ViewPendingWLRequests)
 	r.RegisterHandlerMatchFunc(r.StateMatchFunc(fsm.StateWaitingWLNickname), h.SubmitWLRequestNickname)
 
-	r.RegisterHandlerMatchFunc(matcher.And(matcher.CallbackPrefix("approve"), matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...)), h.ApproveWLRequest)
-	r.RegisterHandlerMatchFunc(matcher.And(matcher.CallbackPrefix("decline"), matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...)), h.DeclineWLRequest)
+	r.RegisterHandlerMatchFunc(matcher.And(matcher.CallbackPrefix(core.CommandApproveWLRequestPrefix), matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...)), h.ApproveWLRequest)
+	r.RegisterHandlerMatchFunc(matcher.And(matcher.CallbackPrefix(core.CommandDeclineWLRequestPrefix), matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...)), h.DeclineWLRequest)
 
 	b.Start(ctx)
 }
