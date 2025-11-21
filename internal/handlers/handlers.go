@@ -6,10 +6,13 @@ import (
 	"whitelist/internal/core"
 	domainUser "whitelist/internal/domain/user"
 	domainWLRequest "whitelist/internal/domain/wl_request"
+
+	"github.com/go-telegram/bot"
 )
 
 type iUserRepository interface {
 	UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error)
+	UserByID(ctx context.Context, id domainUser.ID) (domainUser.User, error)
 }
 
 type iWLRequestRepository interface {
@@ -27,4 +30,8 @@ type Handlers struct {
 
 func New(useRepo iUserRepository, wlRequestRepo iWLRequestRepository, config core.Config) *Handlers {
 	return &Handlers{useRepo: useRepo, wlRequestRepo: wlRequestRepo, config: config}
+}
+
+func (h Handlers) botAnswerCallbackQuery(ctx context.Context, b *bot.Bot, params *bot.AnswerCallbackQueryParams) (bool, error) {
+	return b.AnswerCallbackQuery(ctx, params)
 }
