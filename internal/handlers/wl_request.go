@@ -76,17 +76,17 @@ func (h Handlers) ViewPendingWLRequests(ctx context.Context, b *bot.Bot, update 
 				{
 					{
 						Text:         "✅ Подтвердить",
-						CallbackData: fmt.Sprintf("approve::%s", wlRequest.ID()),
+						CallbackData: fmt.Sprintf("%s%s", core.CommandApproveWLRequestPrefix, wlRequest.ID()),
 					},
 					{
 						Text:         "❌ Отказать",
-						CallbackData: fmt.Sprintf("decline::%s", wlRequest.ID()),
+						CallbackData: fmt.Sprintf("%s%s", core.CommandDeclineWLRequestPrefix, wlRequest.ID()),
 					},
 				},
 			},
 		}
 
-		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+		_, err = h.botSendMessage(ctx, b, &bot.SendMessageParams{
 			ChatID:      update.Message.Chat.ID,
 			Text:        msgs.PendingWLRequest(wlRequest),
 			ParseMode:   "HTML",

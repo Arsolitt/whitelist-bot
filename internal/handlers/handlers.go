@@ -8,6 +8,7 @@ import (
 	domainWLRequest "whitelist/internal/domain/wl_request"
 
 	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
 )
 
 type iUserRepository interface {
@@ -34,4 +35,8 @@ func New(useRepo iUserRepository, wlRequestRepo iWLRequestRepository, config cor
 
 func (h Handlers) botAnswerCallbackQuery(ctx context.Context, b *bot.Bot, params *bot.AnswerCallbackQueryParams) (bool, error) {
 	return b.AnswerCallbackQuery(ctx, params)
+}
+
+func (h Handlers) botSendMessage(ctx context.Context, b *bot.Bot, params *bot.SendMessageParams) (*models.Message, error) {
+	return b.SendMessage(ctx, params)
 }
