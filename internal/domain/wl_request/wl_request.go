@@ -59,13 +59,30 @@ func (w WLRequest) Approve(arbiterID ArbiterID) (WLRequest, error) {
 		RequesterID(w.RequesterID()).
 		Nickname(w.Nickname()).
 		Status(StatusApproved).
-		ArbiterID(arbiterID).
 		DeclineReason(w.DeclineReason()).
+		ArbiterID(arbiterID).
 		CreatedAt(w.CreatedAt()).
 		UpdatedAt(w.UpdatedAt()).
 		Build()
 	if err != nil {
 		return WLRequest{}, fmt.Errorf("failed to approve wl request: %w", err)
+	}
+	return newWLRequest, nil
+}
+
+func (w WLRequest) Decline(arbiterID ArbiterID, declineReason DeclineReason) (WLRequest, error) {
+	newWLRequest, err := NewBuilder().
+		ID(w.ID()).
+		RequesterID(w.RequesterID()).
+		Nickname(w.Nickname()).
+		Status(StatusDeclined).
+		DeclineReason(declineReason).
+		ArbiterID(arbiterID).
+		CreatedAt(w.CreatedAt()).
+		UpdatedAt(w.UpdatedAt()).
+		Build()
+	if err != nil {
+		return WLRequest{}, fmt.Errorf("failed to decline wl request: %w", err)
 	}
 	return newWLRequest, nil
 }

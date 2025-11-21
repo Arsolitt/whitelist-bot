@@ -25,16 +25,18 @@ var errorStatusMap = map[error]string{
 func (h *Handlers) GlobalErrorHandler(ctx context.Context, b *bot.Bot, update *models.Update, err error) {
 	slog.ErrorContext(ctx, "Failed to handle update", logger.ErrorField, err.Error())
 	switch {
-	case h.getCustomErrorMessage(err) != "":
+	case h.getCustomErrorMessage(err) != "" && update.Message != nil:
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
 			Text:   h.getCustomErrorMessage(err),
 		})
-	default:
+	case update.Message != nil:
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
 			Text:   ErrInternalErrorMessage,
 		})
+	default:
+		return
 	}
 
 }
