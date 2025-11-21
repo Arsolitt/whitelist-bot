@@ -86,9 +86,14 @@ func (h Handlers) ViewPendingWLRequests(ctx context.Context, b *bot.Bot, update 
 			},
 		}
 
+		requester, err := h.useRepo.UserByID(ctx, domainUser.ID(wlRequest.RequesterID()))
+		if err != nil {
+			return state, nil, fmt.Errorf("failed to get requester: %w", err)
+		}
+
 		_, err = h.botSendMessage(ctx, b, &bot.SendMessageParams{
 			ChatID:      update.Message.Chat.ID,
-			Text:        msgs.PendingWLRequest(wlRequest),
+			Text:        msgs.PendingWLRequest(wlRequest, requester),
 			ParseMode:   "HTML",
 			ReplyMarkup: keyboard,
 		})
@@ -192,7 +197,7 @@ func (h Handlers) ApproveWLRequest(ctx context.Context, b *bot.Bot, update *mode
 	// TODO: ?????????????
 	_, _ = h.botAnswerCallbackQuery(ctx, b, &bot.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
-		Text:            msgs.CallbackSuccess("заявка подтверждена"),
+		Text:            "✅ Заявка подтверждена",
 		ShowAlert:       false,
 	})
 
@@ -298,7 +303,7 @@ func (h Handlers) DeclineWLRequest(ctx context.Context, b *bot.Bot, update *mode
 	// TODO: ?????????????
 	_, _ = h.botAnswerCallbackQuery(ctx, b, &bot.AnswerCallbackQueryParams{
 		CallbackQueryID: update.CallbackQuery.ID,
-		Text:            "Заявка отклонена!",
+		Text:            "❌ Заявка отклонена!",
 		ShowAlert:       false,
 	})
 
