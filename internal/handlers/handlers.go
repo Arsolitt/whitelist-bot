@@ -3,9 +3,9 @@ package handlers
 import (
 	"context"
 
-	"whitelist/internal/core"
-	domainUser "whitelist/internal/domain/user"
-	domainWLRequest "whitelist/internal/domain/wl_request"
+	"whitelist-bot/internal/core"
+	domainUser "whitelist-bot/internal/domain/user"
+	domainWLRequest "whitelist-bot/internal/domain/wl_request"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"

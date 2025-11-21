@@ -1,6 +1,6 @@
 package locker
 
-import domainUser "whitelist/internal/domain/user"
+import domainUser "whitelist-bot/internal/domain/user"
 
 type ILocker interface {
 	Lock(userID domainUser.ID) error

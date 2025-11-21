@@ -14,19 +14,19 @@ sql:
         overrides:
           - column: "users.first_name"
             go_type:
-              import: "whitelist/internal/domain/user"
+              import: "whitelist-bot/internal/domain/user"
               type: "FirstName"
           - column: "users.last_name"
             go_type:
-              import: "whitelist/internal/domain/user"
+              import: "whitelist-bot/internal/domain/user"
               type: "LastName"
           - column: "users.username"
             go_type:
-              import: "whitelist/internal/domain/user"
+              import: "whitelist-bot/internal/domain/user"
               type: "Username"
           - column: "users.telegram_id"
             go_type:
-              import: "whitelist/internal/domain/user"
+              import: "whitelist-bot/internal/domain/user"
               type: "TelegramID"
   - name: "wlrequests-sqlite"
     engine: "sqlite"
@@ -42,15 +42,15 @@ sql:
         overrides:
           - column: "wl_requests.nickname"
             go_type:
-              import: "whitelist/internal/domain/wl_request"
+              import: "whitelist-bot/internal/domain/wl_request"
               type: "Nickname"
           - column: "wl_requests.status"
             go_type:
-              import: "whitelist/internal/domain/wl_request"
+              import: "whitelist-bot/internal/domain/wl_request"
               type: "Status"
           - column: "wl_requests.decline_reason"
             go_type:
-              import: "whitelist/internal/domain/wl_request"
+              import: "whitelist-bot/internal/domain/wl_request"
               type: "DeclineReason"
 # overrides:
 #   go:

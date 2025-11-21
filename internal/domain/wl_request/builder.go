@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"whitelist/internal/core"
-	"whitelist/internal/core/utils"
-	domainUser "whitelist/internal/domain/user"
+	"whitelist-bot/internal/core"
+	"whitelist-bot/internal/core/utils"
+	domainUser "whitelist-bot/internal/domain/user"
 
 	"github.com/google/uuid"
 )

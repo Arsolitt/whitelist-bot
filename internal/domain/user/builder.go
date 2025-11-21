@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"whitelist/internal/core/utils"
+	"whitelist-bot/internal/core/utils"
 
 	"github.com/google/uuid"
 )

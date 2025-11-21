@@ -3,8 +3,8 @@ package msgs
 import (
 	"fmt"
 	"strings"
-	domainUser "whitelist/internal/domain/user"
-	domainWLRequest "whitelist/internal/domain/wl_request"
+	domainUser "whitelist-bot/internal/domain/user"
+	domainWLRequest "whitelist-bot/internal/domain/wl_request"
 )
 
 const (

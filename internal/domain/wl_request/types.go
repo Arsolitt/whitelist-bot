@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"whitelist/internal/core"
-	"whitelist/internal/core/utils"
+	"whitelist-bot/internal/core"
+	"whitelist-bot/internal/core/utils"
 
 	"github.com/google/uuid"
 )

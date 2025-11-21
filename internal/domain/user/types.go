@@ -1,7 +1,7 @@
 package user
 
 import (
-	"whitelist/internal/core/utils"
+	"whitelist-bot/internal/core/utils"
 
 	"github.com/google/uuid"
 )

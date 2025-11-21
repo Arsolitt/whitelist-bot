@@ -84,8 +84,8 @@ internal/
 1. **Clone the repository**
 
 ```bash
-git clone <repository-url>
-cd whitelist
+git clone https://github.com/Arsolitt/whitelist-bot.git
+cd whitelist-bot
 ```
 
 2. **Create environment configuration**
@@ -183,8 +183,3 @@ goose -dir migrations/sqlite create <migration_name> sql
 - [ ] Permission middleware
 - [ ] Panic recovery middleware
 - [ ] Rate limiting per user
-
-## License
-
-This project is private and not licensed for public use.
-

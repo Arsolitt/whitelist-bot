@@ -2,8 +2,8 @@ package memory
 
 import (
 	"sync"
-	domainUser "whitelist/internal/domain/user"
-	"whitelist/internal/fsm"
+	domainUser "whitelist-bot/internal/domain/user"
+	"whitelist-bot/internal/fsm"
 )
 
 type FSM struct {

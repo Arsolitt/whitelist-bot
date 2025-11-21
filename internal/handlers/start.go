@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"whitelist/internal/fsm"
+	"whitelist-bot/internal/fsm"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"

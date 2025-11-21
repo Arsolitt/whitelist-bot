@@ -3,9 +3,9 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"whitelist/internal/core"
-	"whitelist/internal/fsm"
-	"whitelist/internal/msgs"
+	"whitelist-bot/internal/core"
+	"whitelist-bot/internal/fsm"
+	"whitelist-bot/internal/msgs"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"

@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"sync"
-	"whitelist/internal/core"
-	domainUser "whitelist/internal/domain/user"
+	"whitelist-bot/internal/core"
+	domainUser "whitelist-bot/internal/domain/user"
 )
 
 type UserRepository struct {

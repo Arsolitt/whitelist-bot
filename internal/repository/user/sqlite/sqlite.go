@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"whitelist/internal/core"
-	domainUser "whitelist/internal/domain/user"
+	"whitelist-bot/internal/core"
+	domainUser "whitelist-bot/internal/domain/user"
 )
 
 const SQLITE_TIME_FORMAT = "2006-01-02T15:04:05-0700"

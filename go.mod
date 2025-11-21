@@ -1,4 +1,4 @@
-module whitelist
+module whitelist-bot
 
 go 1.25.3
 

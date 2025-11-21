@@ -3,7 +3,7 @@ package memory
 import (
 	"errors"
 	"sync"
-	domainUser "whitelist/internal/domain/user"
+	domainUser "whitelist-bot/internal/domain/user"
 )
 
 type Locker struct {

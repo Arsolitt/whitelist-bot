@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"slices"
-	"whitelist/internal/core"
-	"whitelist/internal/fsm"
+	"whitelist-bot/internal/core"
+	"whitelist-bot/internal/fsm"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"

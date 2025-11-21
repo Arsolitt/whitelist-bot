@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	"whitelist/internal/core"
+	"whitelist-bot/internal/core"
 )
 
 const (

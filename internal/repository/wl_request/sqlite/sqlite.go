@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	domainWLRequest "whitelist/internal/domain/wl_request"
+	domainWLRequest "whitelist-bot/internal/domain/wl_request"
 )
 
 const SQLITE_TIME_FORMAT = "2006-01-02T15:04:05-0700"

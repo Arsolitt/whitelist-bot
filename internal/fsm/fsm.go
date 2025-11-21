@@ -1,6 +1,6 @@
 package fsm
 
-import domainUser "whitelist/internal/domain/user"
+import domainUser "whitelist-bot/internal/domain/user"
 
 type State string
 

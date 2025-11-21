@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"whitelist/internal/domain/user"
+	"whitelist-bot/internal/domain/user"
 )
 
 func UserInfo(u user.User) string {
