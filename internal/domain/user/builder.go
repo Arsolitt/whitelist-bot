@@ -11,11 +11,11 @@ import (
 )
 
 var (
-	ErrIDRequired         = errors.New("ID is required")
+	ErrIDRequired         = errors.New("ID required")
 	ErrTelegramIDRequired = errors.New("telegram ID required")
 	ErrUsernameRequired   = errors.New("username required")
-	ErrCreatedAtRequired  = errors.New("createdAt is required")
-	ErrUpdatedAtRequired  = errors.New("updatedAt is required")
+	ErrCreatedAtRequired  = errors.New("createdAt required")
+	ErrUpdatedAtRequired  = errors.New("updatedAt required")
 )
 
 type Builder struct {
@@ -130,6 +130,22 @@ func (b Builder) UpdatedAt(updatedAt time.Time) Builder {
 }
 
 func (b Builder) Build() (User, error) {
+	if b.id.IsZero() {
+		b.errors = append(b.errors, ErrIDRequired)
+	}
+	if b.telegramID.IsZero() {
+		b.errors = append(b.errors, ErrTelegramIDRequired)
+	}
+	if b.username.IsZero() {
+		b.errors = append(b.errors, ErrUsernameRequired)
+	}
+	if b.createdAt.IsZero() {
+		b.errors = append(b.errors, ErrCreatedAtRequired)
+	}
+	if b.updatedAt.IsZero() {
+		b.errors = append(b.errors, ErrUpdatedAtRequired)
+	}
+
 	if len(b.errors) > 0 {
 		return User{}, errors.Join(b.errors...)
 	}

@@ -8,6 +8,7 @@ import (
 	"whitelist-bot/internal/core/utils"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBuilder_Build_Success(t *testing.T) {
@@ -28,29 +29,29 @@ func TestBuilder_Build_Success(t *testing.T) {
 		UpdatedAt(now).
 		Build()
 	if err != nil {
-		t.Fatalf("failed to build user: %v", err)
+		assert.Fail(t, "failed to build user: %v", err)
 	}
 
 	if user.ID() != id {
-		t.Errorf("expected user ID to be %s, got %s", id, user.ID())
+		assert.Fail(t, "expected user ID to be %s, got %s", id, user.ID())
 	}
 	if user.TelegramID() != telegramID {
-		t.Errorf("expected user Telegram ID to be %d, got %d", telegramID, user.TelegramID())
+		assert.Fail(t, "expected user Telegram ID to be %d, got %d", telegramID, user.TelegramID())
 	}
 	if user.FirstName() != firstName {
-		t.Errorf("expected user first name to be %s, got %s", firstName, user.FirstName())
+		assert.Fail(t, "expected user first name to be %s, got %s", firstName, user.FirstName())
 	}
 	if user.LastName() != lastName {
-		t.Errorf("expected user last name to be %s, got %s", lastName, user.LastName())
+		assert.Fail(t, "expected user last name to be %s, got %s", lastName, user.LastName())
 	}
 	if user.Username() != username {
-		t.Errorf("expected user username to be %s, got %s", username, user.Username())
+		assert.Fail(t, "expected user username to be %s, got %s", username, user.Username())
 	}
 	if user.CreatedAt() != now {
-		t.Errorf("expected user created at to be %s, got %s", now, user.CreatedAt())
+		assert.Fail(t, "expected user created at to be %s, got %s", now, user.CreatedAt())
 	}
 	if user.UpdatedAt() != now {
-		t.Errorf("expected user updated at to be %s, got %s", now, user.UpdatedAt())
+		assert.Fail(t, "expected user updated at to be %s, got %s", now, user.UpdatedAt())
 	}
 }
 
@@ -93,7 +94,7 @@ func TestBuilder_Build_ValidationError(t *testing.T) {
 					UpdatedAt(now)
 			},
 			expectedError: core.ErrFailedToParseID,
-		},/*  */
+		},
 		{
 			name: "Telegram ID negative",
 			builder: func() Builder {
@@ -190,13 +191,47 @@ func TestBuilder_Build_ValidationError(t *testing.T) {
 			},
 			expectedError: ErrUpdatedAtRequired,
 		},
+		{
+			name: "Empty builder",
+			builder: func() Builder {
+				return NewBuilder()
+			},
+			expectedError: errors.Join(ErrIDRequired, ErrTelegramIDRequired, ErrUsernameRequired, ErrCreatedAtRequired, ErrUpdatedAtRequired),
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			_, err := test.builder().Build()
-			if err != nil && !errors.Is(err, test.expectedError) {
-				t.Errorf("expected error %v, got %v", test.expectedError, err)
+			if err == nil && test.expectedError != nil {
+				t.Errorf("expected error %v, got nil", test.expectedError)
+			}
+			if test.name == "Empty builder" {
+				var joinErr interface{ Unwrap() []error }
+				if !errors.As(err, &joinErr) {
+					assert.Fail(t, "expected a join error, but got a different type", err)
+				}
+				actualErrors := joinErr.Unwrap()
+
+				var expectedErr interface{ Unwrap() []error }
+				if !errors.As(test.expectedError, &expectedErr) {
+					assert.Fail(t, "expected a join error, but got a different type", test.expectedError)
+				}
+				expectedErrors := expectedErr.Unwrap()
+				for _, expected := range expectedErrors {
+					found := false
+					for _, actual := range actualErrors {
+						if errors.Is(actual, expected) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						assert.Fail(t, "expected error %q was not found in the joined error", expected)
+					}
+				}
+			} else {
+				assert.ErrorIs(t, err, test.expectedError)
 			}
 		})
 	}
