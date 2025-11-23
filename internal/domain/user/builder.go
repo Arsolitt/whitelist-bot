@@ -4,9 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"whitelist-bot/internal/core"
 	"whitelist-bot/internal/core/utils"
 
 	"github.com/google/uuid"
+)
+
+var (
+	ErrIDRequired         = errors.New("ID is required")
+	ErrTelegramIDRequired = errors.New("telegram ID required")
+	ErrUsernameRequired   = errors.New("username required")
+	ErrCreatedAtRequired  = errors.New("createdAt is required")
+	ErrUpdatedAtRequired  = errors.New("updatedAt is required")
 )
 
 type Builder struct {
@@ -31,7 +40,7 @@ func (b Builder) NewID() Builder {
 func (b Builder) IDFromString(id string) Builder {
 	idUUID, err := utils.UUIDFromString[ID](id)
 	if err != nil {
-		b.errors = append(b.errors, fmt.Errorf("failed to parse ID: %w", err))
+		b.errors = append(b.errors, fmt.Errorf("%w: %w", core.ErrFailedToParseID, err))
 		return b
 	}
 	return b.ID(ID(idUUID))
@@ -43,7 +52,7 @@ func (b Builder) IDFromUUID(id uuid.UUID) Builder {
 
 func (b Builder) ID(id ID) Builder {
 	if id.IsZero() {
-		b.errors = append(b.errors, errors.New("ID is required"))
+		b.errors = append(b.errors, ErrIDRequired)
 		return b
 	}
 	b.id = id
@@ -52,7 +61,7 @@ func (b Builder) ID(id ID) Builder {
 
 func (b Builder) TelegramID(telegramID TelegramID) Builder {
 	if telegramID.IsZero() {
-		b.errors = append(b.errors, errors.New("telegram ID required"))
+		b.errors = append(b.errors, ErrTelegramIDRequired)
 		return b
 	}
 	b.telegramID = telegramID
@@ -91,7 +100,7 @@ func (b Builder) LastNameFromString(lastName string) Builder {
 
 func (b Builder) Username(username Username) Builder {
 	if username.IsZero() {
-		b.errors = append(b.errors, errors.New("username required"))
+		b.errors = append(b.errors, ErrUsernameRequired)
 		return b
 	}
 	b.username = username
@@ -104,7 +113,7 @@ func (b Builder) UsernameFromString(username string) Builder {
 
 func (b Builder) CreatedAt(createdAt time.Time) Builder {
 	if createdAt.IsZero() {
-		b.errors = append(b.errors, errors.New("createdAt is required"))
+		b.errors = append(b.errors, ErrCreatedAtRequired)
 		return b
 	}
 	b.createdAt = createdAt
@@ -113,7 +122,7 @@ func (b Builder) CreatedAt(createdAt time.Time) Builder {
 
 func (b Builder) UpdatedAt(updatedAt time.Time) Builder {
 	if updatedAt.IsZero() {
-		b.errors = append(b.errors, errors.New("updatedAt is required"))
+		b.errors = append(b.errors, ErrUpdatedAtRequired)
 		return b
 	}
 	b.updatedAt = updatedAt

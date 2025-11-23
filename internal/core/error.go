@@ -1,6 +1,8 @@
 package core
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	ErrUserNotFound     = errors.New("user not found")
@@ -8,4 +10,5 @@ var (
 	ErrInvalidLength    = errors.New("invalid length")
 	ErrInvalidState     = errors.New("invalid state")
 	ErrInvalidUserState = errors.New("invalid user state")
+	ErrFailedToParseID  = errors.New("failed to parse ID")
 )
