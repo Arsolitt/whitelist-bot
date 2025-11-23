@@ -6,12 +6,16 @@ import (
 	domainUser "whitelist-bot/internal/domain/user"
 )
 
+var (
+	ErrUserLockNotFound = errors.New("user lock not found")
+)
+
 type Locker struct {
 	mu    sync.RWMutex
 	locks map[domainUser.ID]*sync.RWMutex
 }
 
-func NewLocker() *Locker {
+func New() *Locker {
 	return &Locker{
 		locks: make(map[domainUser.ID]*sync.RWMutex),
 	}
@@ -40,7 +44,7 @@ func (l *Locker) Unlock(userID domainUser.ID) error {
 	l.mu.RUnlock()
 
 	if !ok {
-		return errors.New("user lock not found")
+		return ErrUserLockNotFound
 	}
 
 	userLock.Unlock()

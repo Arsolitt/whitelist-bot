@@ -49,7 +49,7 @@ func main() {
 	logger.InitLogger(cfg.Logs)
 	slog.Info("Logger initialized successfully")
 
-	lockerService := memoryLocker.NewLocker()
+	lockerService := memoryLocker.New()
 	fsmService := memoryFSM.NewFSM()
 
 	// TODO: move db connection to core package
