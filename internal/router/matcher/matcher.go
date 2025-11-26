@@ -1,6 +1,7 @@
 package matcher
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/go-telegram/bot"
@@ -74,5 +75,27 @@ func CallbackPrefix(prefix string) bot.MatchFunc {
 			return false
 		}
 		return strings.HasPrefix(update.CallbackQuery.Data, prefix)
+	}
+}
+
+func CallbackAction(expectedAction string) bot.MatchFunc {
+	return func(update *models.Update) bool {
+		if update.CallbackQuery == nil {
+			return false
+		}
+		var raw map[string]interface{}
+		err := json.Unmarshal([]byte(update.CallbackQuery.Data), &raw)
+		if err != nil {
+			return false
+		}
+		action, exists := raw["action"]
+		if !exists {
+			return false
+		}
+		actionStr, ok := action.(string)
+		if !ok {
+			return false
+		}
+		return expectedAction == actionStr
 	}
 }
