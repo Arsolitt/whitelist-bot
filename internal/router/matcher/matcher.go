@@ -2,6 +2,7 @@ package matcher
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 
 	"github.com/go-telegram/bot"
@@ -60,12 +61,7 @@ func MatchTelegramIDs(ids ...int64) bot.MatchFunc {
 			return false
 		}
 
-		for _, id := range ids {
-			if userID == id {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(ids, userID)
 	}
 }
 
@@ -83,7 +79,7 @@ func CallbackAction(expectedAction string) bot.MatchFunc {
 		if update.CallbackQuery == nil {
 			return false
 		}
-		var raw map[string]interface{}
+		var raw map[string]any
 		err := json.Unmarshal([]byte(update.CallbackQuery.Data), &raw)
 		if err != nil {
 			return false

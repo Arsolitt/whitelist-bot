@@ -60,13 +60,18 @@ func DeclinedWLRequest(wlRequest domainWLRequest.WLRequest, arbiter domainUser.U
 	return sb.String()
 }
 
-func wlRequestBody(sb *strings.Builder, wlRequest domainWLRequest.WLRequest, arbiter domainUser.User, requester domainUser.User) {
-	sb.WriteString(fmt.Sprintf("👤 <b>Ник:</b> %s\n", wlRequest.Nickname()))
+func wlRequestBody(
+	sb *strings.Builder,
+	wlRequest domainWLRequest.WLRequest,
+	arbiter domainUser.User,
+	requester domainUser.User,
+) {
+	fmt.Fprintf(sb, "👤 <b>Ник:</b> %s\n", wlRequest.Nickname())
 	if wlRequest.Status() == domainWLRequest.StatusDeclined && !wlRequest.DeclineReason().IsZero() {
-		sb.WriteString(fmt.Sprintf("🔄 <b>Причина отказа:</b> %s\n", wlRequest.DeclineReason()))
+		fmt.Fprintf(sb, "🔄 <b>Причина отказа:</b> %s\n", wlRequest.DeclineReason())
 	}
-	sb.WriteString(fmt.Sprintf("🔗 <b>Заявитель:</b> @%s\n", requester.Username()))
-	sb.WriteString(fmt.Sprintf("🔗 <b>Арбитр:</b> @%s\n", arbiter.Username()))
-	sb.WriteString(fmt.Sprintf("🆔 <b>ID заявки:</b> <code>%s</code>\n", wlRequest.ID()))
-	sb.WriteString(fmt.Sprintf("📅 <b>Создана:</b> %s\n", wlRequest.CreatedAt().Format(timeFormat)))
+	fmt.Fprintf(sb, "🔗 <b>Заявитель:</b> @%s\n", requester.Username())
+	fmt.Fprintf(sb, "🔗 <b>Арбитр:</b> @%s\n", arbiter.Username())
+	fmt.Fprintf(sb, "🆔 <b>ID заявки:</b> <code>%s</code>\n", wlRequest.ID())
+	fmt.Fprintf(sb, "📅 <b>Создана:</b> %s\n", wlRequest.CreatedAt().Format(timeFormat))
 }

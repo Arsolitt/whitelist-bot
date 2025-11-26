@@ -18,11 +18,18 @@ import (
 
 type HandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, currentState fsm.State) (fsm.State, *bot.SendMessageParams, error)
 type ErrorHandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, err error)
+
 type SuccessHandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State, msgParams *bot.SendMessageParams)
 
 type iUserRepository interface {
 	UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error)
-	CreateUser(ctx context.Context, telegramId domainUser.TelegramID, firstName domainUser.FirstName, lastName domainUser.LastName, username domainUser.Username) (domainUser.User, error)
+	CreateUser(
+		ctx context.Context,
+		telegramId domainUser.TelegramID,
+		firstName domainUser.FirstName,
+		lastName domainUser.LastName,
+		username domainUser.Username,
+	) (domainUser.User, error)
 }
 
 type TelegramRouter struct {
@@ -34,7 +41,13 @@ type TelegramRouter struct {
 	successHandler SuccessHandlerFunc
 }
 
-func NewTelegramRouter(fsm fsm.IFSM, locker locker.ILocker, repository iUserRepository, errorHandler ErrorHandlerFunc, successHandler SuccessHandlerFunc) *TelegramRouter {
+func NewTelegramRouter(
+	fsm fsm.IFSM,
+	locker locker.ILocker,
+	repository iUserRepository,
+	errorHandler ErrorHandlerFunc,
+	successHandler SuccessHandlerFunc,
+) *TelegramRouter {
 	return &TelegramRouter{
 		fsm:            fsm,
 		locker:         locker,
@@ -122,14 +135,26 @@ func (r *TelegramRouter) WrapHandler(handler HandlerFunc) bot.HandlerFunc {
 	}
 }
 
-func (r *TelegramRouter) checkUser(ctx context.Context, id int64, firstName string, lastName string, username string) (domainUser.User, error) {
+func (r *TelegramRouter) checkUser(
+	ctx context.Context,
+	id int64,
+	firstName string,
+	lastName string,
+	username string,
+) (domainUser.User, error) {
 	user, repoErr := r.userRepository.UserByTelegramID(ctx, id)
 	// TODO: add cache for user
 
 	if errors.Is(repoErr, core.ErrUserNotFound) {
 		slog.WarnContext(ctx, "User not found, creating new user")
 
-		newDBUser, err := r.userRepository.CreateUser(ctx, domainUser.TelegramID(id), domainUser.FirstName(firstName), domainUser.LastName(lastName), domainUser.Username(username))
+		newDBUser, err := r.userRepository.CreateUser(
+			ctx,
+			domainUser.TelegramID(id),
+			domainUser.FirstName(firstName),
+			domainUser.LastName(lastName),
+			domainUser.Username(username),
+		)
 		if err != nil {
 			return domainUser.User{}, fmt.Errorf("failed to create new user in storage: %w", err)
 		}

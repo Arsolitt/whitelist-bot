@@ -196,7 +196,13 @@ func TestBuilder_Build_ValidationError(t *testing.T) {
 			builder: func() Builder {
 				return NewBuilder()
 			},
-			expectedError: errors.Join(ErrIDRequired, ErrTelegramIDRequired, ErrUsernameRequired, ErrCreatedAtRequired, ErrUpdatedAtRequired),
+			expectedError: errors.Join(
+				ErrIDRequired,
+				ErrTelegramIDRequired,
+				ErrUsernameRequired,
+				ErrCreatedAtRequired,
+				ErrUpdatedAtRequired,
+			),
 		},
 	}
 

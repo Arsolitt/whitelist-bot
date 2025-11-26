@@ -38,7 +38,6 @@ func (h *Handlers) GlobalErrorHandler(ctx context.Context, b *bot.Bot, update *m
 	default:
 		return
 	}
-
 }
 
 func (h *Handlers) getCustomErrorMessage(target error) string {

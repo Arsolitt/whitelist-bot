@@ -38,10 +38,8 @@ func TestLocker_Concurrent_SameUser(t *testing.T) {
 	var counter int
 	var wg sync.WaitGroup
 
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 10 {
+		wg.Go(func() {
 
 			locker.Lock(userID)
 			defer locker.Unlock(userID)
@@ -49,7 +47,7 @@ func TestLocker_Concurrent_SameUser(t *testing.T) {
 			temp := counter
 			time.Sleep(time.Millisecond * 10)
 			counter = temp + 1
-		}()
+		})
 	}
 
 	wg.Wait()

@@ -11,7 +11,13 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-func (h Handlers) GlobalSuccessHandler(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State, msgParams *bot.SendMessageParams) {
+func (h Handlers) GlobalSuccessHandler(
+	ctx context.Context,
+	b *bot.Bot,
+	update *models.Update,
+	state fsm.State,
+	msgParams *bot.SendMessageParams,
+) {
 	if update.Message == nil {
 		return
 	}

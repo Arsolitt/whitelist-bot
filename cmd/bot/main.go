@@ -85,8 +85,18 @@ func main() {
 	r.SetBot(b)
 
 	r.RegisterHandlerMatchFunc(matcher.And(matcher.MsgText(core.CommandInfo), r.StateMatchFunc(fsm.StateIdle)), h.Info)
-	r.RegisterHandlerMatchFunc(matcher.And(matcher.MsgText(core.CommandNewWLRequest), r.StateMatchFunc(fsm.StateIdle)), h.NewWLRequest)
-	r.RegisterHandlerMatchFunc(matcher.And(matcher.MsgText(core.CommandViewPendingWLRequests), r.StateMatchFunc(fsm.StateIdle), matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...)), h.ViewPendingWLRequests)
+	r.RegisterHandlerMatchFunc(
+		matcher.And(matcher.MsgText(core.CommandNewWLRequest), r.StateMatchFunc(fsm.StateIdle)),
+		h.NewWLRequest,
+	)
+	r.RegisterHandlerMatchFunc(
+		matcher.And(
+			matcher.MsgText(core.CommandViewPendingWLRequests),
+			r.StateMatchFunc(fsm.StateIdle),
+			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
+		),
+		h.ViewPendingWLRequests,
+	)
 	r.RegisterHandlerMatchFunc(r.StateMatchFunc(fsm.StateWaitingWLNickname), h.SubmitWLRequestNickname)
 
 	r.RegisterHandlerMatchFunc(

@@ -27,7 +27,11 @@ func NewWLRequestRepository(db iQueryable) *WLRequestRepository {
 	return &WLRequestRepository{db: db}
 }
 
-func (r *WLRequestRepository) CreateWLRequest(ctx context.Context, requesterID domainWLRequest.RequesterID, nickname domainWLRequest.Nickname) (domainWLRequest.WLRequest, error) {
+func (r *WLRequestRepository) CreateWLRequest(
+	ctx context.Context,
+	requesterID domainWLRequest.RequesterID,
+	nickname domainWLRequest.Nickname,
+) (domainWLRequest.WLRequest, error) {
 	q := New(r.db)
 
 	now := time.Now()
@@ -101,7 +105,10 @@ func (r *WLRequestRepository) PendingWLRequests(ctx context.Context, limit int64
 	return pendingWLRequests, nil
 }
 
-func (r *WLRequestRepository) WLRequestByID(ctx context.Context, id domainWLRequest.ID) (domainWLRequest.WLRequest, error) {
+func (r *WLRequestRepository) WLRequestByID(
+	ctx context.Context,
+	id domainWLRequest.ID,
+) (domainWLRequest.WLRequest, error) {
 	q := New(r.db)
 
 	dbWLRequest, err := q.WLRequestByID(ctx, id.String())
@@ -139,7 +146,10 @@ func (r *WLRequestRepository) WLRequestByID(ctx context.Context, id domainWLRequ
 	return wlRequest, nil
 }
 
-func (r *WLRequestRepository) UpdateWLRequest(ctx context.Context, wlRequest domainWLRequest.WLRequest) (domainWLRequest.WLRequest, error) {
+func (r *WLRequestRepository) UpdateWLRequest(
+	ctx context.Context,
+	wlRequest domainWLRequest.WLRequest,
+) (domainWLRequest.WLRequest, error) {
 	q := New(r.db)
 
 	wlRequest = wlRequest.UpdateTimestamp()

@@ -21,7 +21,12 @@ const PENDING_WL_REQUESTS_LIMIT = 5
 
 // TODO: rewrite routing for callback queries.
 
-func (h Handlers) NewWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, _ fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+func (h Handlers) NewWLRequest(
+	ctx context.Context,
+	b *bot.Bot,
+	update *models.Update,
+	_ fsm.State,
+) (fsm.State, *bot.SendMessageParams, error) {
 	msgParams := bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,
 		Text:      msgs.WaitingForNickname(),
@@ -30,7 +35,12 @@ func (h Handlers) NewWLRequest(ctx context.Context, b *bot.Bot, update *models.U
 	return fsm.StateWaitingWLNickname, &msgParams, nil
 }
 
-func (h Handlers) SubmitWLRequestNickname(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+func (h Handlers) SubmitWLRequestNickname(
+	ctx context.Context,
+	b *bot.Bot,
+	update *models.Update,
+	state fsm.State,
+) (fsm.State, *bot.SendMessageParams, error) {
 	// TODO: add validation for nickname. Length, special characters, etc.
 	user, err := h.useRepo.UserByTelegramID(ctx, update.Message.From.ID)
 	if err != nil {
@@ -42,7 +52,11 @@ func (h Handlers) SubmitWLRequestNickname(ctx context.Context, b *bot.Bot, updat
 		nickname = update.Message.Text
 	}
 
-	dbWLRequest, err := h.wlRequestRepo.CreateWLRequest(ctx, domainWLRequest.RequesterID(user.ID()), domainWLRequest.Nickname(nickname))
+	dbWLRequest, err := h.wlRequestRepo.CreateWLRequest(
+		ctx,
+		domainWLRequest.RequesterID(user.ID()),
+		domainWLRequest.Nickname(nickname),
+	)
 	if err != nil {
 		return fsm.StateWaitingWLNickname, nil, fmt.Errorf("failed to create wl request: %w", err)
 	}
@@ -57,7 +71,12 @@ func (h Handlers) SubmitWLRequestNickname(ctx context.Context, b *bot.Bot, updat
 	return fsm.StateIdle, &msgParams, nil
 }
 
-func (h Handlers) ViewPendingWLRequests(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+func (h Handlers) ViewPendingWLRequests(
+	ctx context.Context,
+	b *bot.Bot,
+	update *models.Update,
+	state fsm.State,
+) (fsm.State, *bot.SendMessageParams, error) {
 	wlRequests, err := h.wlRequestRepo.PendingWLRequests(ctx, PENDING_WL_REQUESTS_LIMIT)
 	if err != nil {
 		return state, nil, fmt.Errorf("failed to get  pending wl request: %w", err)
@@ -107,7 +126,12 @@ func (h Handlers) ViewPendingWLRequests(ctx context.Context, b *bot.Bot, update 
 	return state, nil, nil
 }
 
-func (h Handlers) ApproveWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+func (h Handlers) ApproveWLRequest(
+	ctx context.Context,
+	b *bot.Bot,
+	update *models.Update,
+	state fsm.State,
+) (fsm.State, *bot.SendMessageParams, error) {
 	var callbackData callbacks.WLRequestCallbackData
 	err := json.Unmarshal([]byte(update.CallbackQuery.Data), &callbackData)
 	if err != nil {
@@ -208,7 +232,12 @@ func (h Handlers) ApproveWLRequest(ctx context.Context, b *bot.Bot, update *mode
 	return state, nil, nil
 }
 
-func (h Handlers) DeclineWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+func (h Handlers) DeclineWLRequest(
+	ctx context.Context,
+	b *bot.Bot,
+	update *models.Update,
+	state fsm.State,
+) (fsm.State, *bot.SendMessageParams, error) {
 	var callbackData callbacks.WLRequestCallbackData
 	err := json.Unmarshal([]byte(update.CallbackQuery.Data), &callbackData)
 	if err != nil {
@@ -266,7 +295,10 @@ func (h Handlers) DeclineWLRequest(ctx context.Context, b *bot.Bot, update *mode
 	ctx = logger.WithLogValue(ctx, logger.RequesterIDField, requester.ID().String())
 	slog.DebugContext(ctx, "Requester fetched from database")
 
-	declinedRequest, err := dbWLRequest.Decline(domainWLRequest.ArbiterID(arbiter.ID()), domainWLRequest.DeclineReason("Отклонено администратором"))
+	declinedRequest, err := dbWLRequest.Decline(
+		domainWLRequest.ArbiterID(arbiter.ID()),
+		domainWLRequest.DeclineReason("Отклонено администратором"),
+	)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to decline wl request", logger.ErrorField, err.Error())
 		_, _ = h.botAnswerCallbackQuery(ctx, b, &bot.AnswerCallbackQueryParams{

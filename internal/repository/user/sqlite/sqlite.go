@@ -64,7 +64,13 @@ func (r *UserRepository) UserByTelegramID(ctx context.Context, telegramID int64)
 	return user, nil
 }
 
-func (r *UserRepository) CreateUser(ctx context.Context, telegramId domainUser.TelegramID, firstName domainUser.FirstName, lastName domainUser.LastName, username domainUser.Username) (domainUser.User, error) {
+func (r *UserRepository) CreateUser(
+	ctx context.Context,
+	telegramId domainUser.TelegramID,
+	firstName domainUser.FirstName,
+	lastName domainUser.LastName,
+	username domainUser.Username,
+) (domainUser.User, error) {
 	q := New(r.db)
 
 	now := time.Now()

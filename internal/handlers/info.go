@@ -11,7 +11,12 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-func (h *Handlers) Info(ctx context.Context, b *bot.Bot, update *models.Update, currentState fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+func (h *Handlers) Info(
+	ctx context.Context,
+	b *bot.Bot,
+	update *models.Update,
+	currentState fsm.State,
+) (fsm.State, *bot.SendMessageParams, error) {
 	if currentState != fsm.StateIdle {
 		return currentState, nil, core.ErrInvalidUserState
 	}

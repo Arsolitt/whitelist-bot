@@ -17,7 +17,11 @@ type iUserRepository interface {
 }
 
 type iWLRequestRepository interface {
-	CreateWLRequest(ctx context.Context, requesterID domainWLRequest.RequesterID, nickname domainWLRequest.Nickname) (domainWLRequest.WLRequest, error)
+	CreateWLRequest(
+		ctx context.Context,
+		requesterID domainWLRequest.RequesterID,
+		nickname domainWLRequest.Nickname,
+	) (domainWLRequest.WLRequest, error)
 	PendingWLRequests(ctx context.Context, limit int64) ([]domainWLRequest.WLRequest, error)
 	WLRequestByID(ctx context.Context, id domainWLRequest.ID) (domainWLRequest.WLRequest, error)
 	UpdateWLRequest(ctx context.Context, wlRequest domainWLRequest.WLRequest) (domainWLRequest.WLRequest, error)
@@ -33,10 +37,18 @@ func New(useRepo iUserRepository, wlRequestRepo iWLRequestRepository, config cor
 	return &Handlers{useRepo: useRepo, wlRequestRepo: wlRequestRepo, config: config}
 }
 
-func (h Handlers) botAnswerCallbackQuery(ctx context.Context, b *bot.Bot, params *bot.AnswerCallbackQueryParams) (bool, error) {
+func (h Handlers) botAnswerCallbackQuery(
+	ctx context.Context,
+	b *bot.Bot,
+	params *bot.AnswerCallbackQueryParams,
+) (bool, error) {
 	return b.AnswerCallbackQuery(ctx, params)
 }
 
-func (h Handlers) botSendMessage(ctx context.Context, b *bot.Bot, params *bot.SendMessageParams) (*models.Message, error) {
+func (h Handlers) botSendMessage(
+	ctx context.Context,
+	b *bot.Bot,
+	params *bot.SendMessageParams,
+) (*models.Message, error) {
 	return b.SendMessage(ctx, params)
 }
