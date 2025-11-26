@@ -2,12 +2,11 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strings"
-	"whitelist-bot/internal/core"
+	"whitelist-bot/internal/callbacks"
 	"whitelist-bot/internal/core/logger"
-	"whitelist-bot/internal/core/utils"
 	"whitelist-bot/internal/fsm"
 	"whitelist-bot/internal/msgs"
 
@@ -19,6 +18,8 @@ import (
 )
 
 const PENDING_WL_REQUESTS_LIMIT = 5
+
+// TODO: rewrite routing for callback queries.
 
 func (h Handlers) NewWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, _ fsm.State) (fsm.State, *bot.SendMessageParams, error) {
 	msgParams := bot.SendMessageParams{
@@ -76,11 +77,11 @@ func (h Handlers) ViewPendingWLRequests(ctx context.Context, b *bot.Bot, update 
 				{
 					{
 						Text:         "✅ Подтвердить",
-						CallbackData: fmt.Sprintf("%s%s", core.CommandApproveWLRequestPrefix, wlRequest.ID()),
+						CallbackData: callbacks.ApproveWLRequestData(ctx, wlRequest.ID()),
 					},
 					{
 						Text:         "❌ Отказать",
-						CallbackData: fmt.Sprintf("%s%s", core.CommandDeclineWLRequestPrefix, wlRequest.ID()),
+						CallbackData: callbacks.DeclineWLRequestData(ctx, wlRequest.ID()),
 					},
 				},
 			},
@@ -107,26 +108,28 @@ func (h Handlers) ViewPendingWLRequests(ctx context.Context, b *bot.Bot, update 
 }
 
 func (h Handlers) ApproveWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
-	if update.CallbackQuery == nil {
-		return state, nil, fmt.Errorf("callback query is nil")
-	}
-	callbackData := update.CallbackQuery.Data
-	requestIDStr := strings.TrimPrefix(callbackData, core.CommandApproveWLRequestPrefix)
-
-	requestID, err := utils.UUIDFromString[domainWLRequest.ID](requestIDStr)
+	var callbackData callbacks.WLRequestCallbackData
+	err := json.Unmarshal([]byte(update.CallbackQuery.Data), &callbackData)
 	if err != nil {
 		_, _ = h.botAnswerCallbackQuery(ctx, b, &bot.AnswerCallbackQueryParams{
 			CallbackQueryID: update.CallbackQuery.ID,
-			Text:            msgs.CallbackError("неверный ID заявки"),
+			Text:            msgs.CallbackError("неверный формат callback data"),
 			ShowAlert:       true,
 		})
-		return state, nil, fmt.Errorf("failed to parse request ID: %w", err)
+		return state, nil, fmt.Errorf("failed to unmarshal callback data: %w", err)
+	}
+	if !callbackData.IsApprove() {
+		_, _ = h.botAnswerCallbackQuery(ctx, b, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            msgs.CallbackError("неверный action"),
+			ShowAlert:       true,
+		})
+		return state, nil, fmt.Errorf("failed to unmarshal callback data: %w", err)
 	}
 
-	ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, requestID.String())
-	slog.DebugContext(ctx, "WL request ID parsed")
+	ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, callbackData.ID().String())
 
-	dbWLRequest, err := h.wlRequestRepo.WLRequestByID(ctx, requestID)
+	dbWLRequest, err := h.wlRequestRepo.WLRequestByID(ctx, callbackData.ID())
 	if err != nil {
 		_, _ = h.botAnswerCallbackQuery(ctx, b, &bot.AnswerCallbackQueryParams{
 			CallbackQueryID: update.CallbackQuery.ID,
@@ -205,30 +208,29 @@ func (h Handlers) ApproveWLRequest(ctx context.Context, b *bot.Bot, update *mode
 	return state, nil, nil
 }
 
-// TODO: rewrite routing for callback queries.
 func (h Handlers) DeclineWLRequest(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
-	if update.CallbackQuery == nil {
-		return state, nil, fmt.Errorf("callback query is nil")
-	}
-	callbackData := update.CallbackQuery.Data
-	requestIDStr := strings.TrimPrefix(callbackData, core.CommandDeclineWLRequestPrefix)
-
-	requestID, err := utils.UUIDFromString[domainWLRequest.ID](requestIDStr)
+	var callbackData callbacks.WLRequestCallbackData
+	err := json.Unmarshal([]byte(update.CallbackQuery.Data), &callbackData)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to parse request ID", logger.ErrorField, err.Error())
 		_, _ = h.botAnswerCallbackQuery(ctx, b, &bot.AnswerCallbackQueryParams{
 			CallbackQueryID: update.CallbackQuery.ID,
-			Text:            msgs.CallbackError("неверный ID заявки"),
+			Text:            msgs.CallbackError("неверный формат callback data"),
 			ShowAlert:       true,
 		})
-		return fsm.StateIdle, nil, fmt.Errorf("failed to parse request ID: %w", err)
+		return state, nil, fmt.Errorf("failed to unmarshal callback data: %w", err)
+	}
+	if !callbackData.IsDecline() {
+		_, _ = h.botAnswerCallbackQuery(ctx, b, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            msgs.CallbackError("неверный action"),
+			ShowAlert:       true,
+		})
+		return state, nil, fmt.Errorf("failed to unmarshal callback data: %w", err)
 	}
 
-	ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, requestID.String())
-	slog.DebugContext(ctx, "WL request ID parsed")
+	ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, callbackData.ID().String())
 
-	// Get request from database
-	dbWLRequest, err := h.wlRequestRepo.WLRequestByID(ctx, requestID)
+	dbWLRequest, err := h.wlRequestRepo.WLRequestByID(ctx, callbackData.ID())
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get wl request", logger.ErrorField, err.Error())
 		_, _ = h.botAnswerCallbackQuery(ctx, b, &bot.AnswerCallbackQueryParams{
