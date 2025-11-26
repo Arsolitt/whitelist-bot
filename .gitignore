@@ -15,6 +15,7 @@ whitelist-bot
 *.dll
 *.so
 *.dylib
+.build
 
 # Test binary
 *.test
