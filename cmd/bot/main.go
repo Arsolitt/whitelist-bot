@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"strings"
 
-	"whitelist-bot/internal/callbacks"
 	"whitelist-bot/internal/core"
 	"whitelist-bot/internal/core/logger"
 	"whitelist-bot/internal/fsm"
@@ -92,13 +91,13 @@ func main() {
 
 	r.RegisterHandlerMatchFunc(
 		matcher.And(
-			matcher.CallbackAction(callbacks.ActionApprove),
+			matcher.CallbackAction(core.ActionWLRequestApprove),
 			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
 		),
 		h.ApproveWLRequest)
 	r.RegisterHandlerMatchFunc(
 		matcher.And(
-			matcher.CallbackAction(callbacks.ActionDecline),
+			matcher.CallbackAction(core.ActionWLRequestDecline),
 			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
 		),
 		h.DeclineWLRequest)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"whitelist-bot/internal/core"
 	"whitelist-bot/internal/core/logger"
 	"whitelist-bot/internal/core/utils"
 	domainWLRequest "whitelist-bot/internal/domain/wl_request"
@@ -19,11 +20,11 @@ func (c WLRequestCallbackData) Action() string {
 }
 
 func (c WLRequestCallbackData) IsApprove() bool {
-	return c.action == ActionApprove
+	return c.action == core.ActionWLRequestApprove
 }
 
 func (c WLRequestCallbackData) IsDecline() bool {
-	return c.action == ActionDecline
+	return c.action == core.ActionWLRequestDecline
 }
 
 func (c WLRequestCallbackData) ID() domainWLRequest.ID {
@@ -67,7 +68,7 @@ func NewWLRequestCallbackData(id domainWLRequest.ID, action string) WLRequestCal
 }
 
 func ApproveWLRequestData(ctx context.Context, id domainWLRequest.ID) string {
-	json, err := json.Marshal(NewWLRequestCallbackData(id, ActionApprove))
+	json, err := json.Marshal(NewWLRequestCallbackData(id, core.ActionWLRequestApprove))
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to marshal approve WL request data", logger.ErrorField, err.Error())
 		return ""
@@ -77,10 +78,11 @@ func ApproveWLRequestData(ctx context.Context, id domainWLRequest.ID) string {
 }
 
 func DeclineWLRequestData(ctx context.Context, id domainWLRequest.ID) string {
-	json, err := json.Marshal(NewWLRequestCallbackData(id, ActionDecline))
+	json, err := json.Marshal(NewWLRequestCallbackData(id, core.ActionWLRequestDecline))
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to marshal decline WL request data", logger.ErrorField, err.Error())
 		return ""
 	}
+	slog.DebugContext(ctx, "Decline WL request data marshalled", "data", string(json))
 	return string(json)
 }
