@@ -1,8 +1,14 @@
 package wl_request
 
 import (
+	"errors"
 	"fmt"
 	"time"
+)
+
+var (
+	ErrCantApproveNonPendingWLRequest = errors.New("cant approve wl request that is not pending")
+	ErrCantDeclineNonPendingWLRequest = errors.New("cant decline wl request that is not pending")
 )
 
 type WLRequest struct {
@@ -53,7 +59,14 @@ func (w WLRequest) UpdateTimestamp() WLRequest {
 	return w
 }
 
+func (w WLRequest) IsPending() bool {
+	return w.status == StatusPending
+}
+
 func (w WLRequest) Approve(arbiterID ArbiterID) (WLRequest, error) {
+	if !w.IsPending() {
+		return WLRequest{}, ErrCantApproveNonPendingWLRequest
+	}
 	newWLRequest, err := NewBuilder().
 		ID(w.ID()).
 		RequesterID(w.RequesterID()).
@@ -71,6 +84,9 @@ func (w WLRequest) Approve(arbiterID ArbiterID) (WLRequest, error) {
 }
 
 func (w WLRequest) Decline(arbiterID ArbiterID, declineReason DeclineReason) (WLRequest, error) {
+	if !w.IsPending() {
+		return WLRequest{}, ErrCantDeclineNonPendingWLRequest
+	}
 	newWLRequest, err := NewBuilder().
 		ID(w.ID()).
 		RequesterID(w.RequesterID()).

@@ -4,11 +4,21 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"whitelist-bot/internal/core"
 	"whitelist-bot/internal/core/utils"
 	domainUser "whitelist-bot/internal/domain/user"
 
 	"github.com/google/uuid"
+)
+
+var (
+	ErrIDRequired                       = errors.New("ID required")
+	ErrRequesterIDRequired              = errors.New("requester ID required")
+	ErrNicknameRequired                 = errors.New("nickname required")
+	ErrStatusRequired                   = errors.New("status required")
+	ErrCreatedAtRequired                = errors.New("createdAt required")
+	ErrUpdatedAtRequired                = errors.New("updatedAt required")
+	ErrArbiterRequiredForNonPending     = errors.New("arbiter ID is required for non-pending status")
+	ErrDeclineReasonRequiredForDeclined = errors.New("decline reason is required for declined status")
 )
 
 type Builder struct {
@@ -164,11 +174,32 @@ func (b Builder) Build() (WLRequest, error) {
 	if len(b.errors) > 0 {
 		return WLRequest{}, errors.Join(b.errors...)
 	}
+	if b.id.IsZero() {
+		b.errors = append(b.errors, ErrIDRequired)
+	}
+	if b.requesterID.IsZero() {
+		b.errors = append(b.errors, ErrRequesterIDRequired)
+	}
+	if b.nickname.IsZero() {
+		b.errors = append(b.errors, ErrNicknameRequired)
+	}
+	if b.status.IsZero() {
+		b.errors = append(b.errors, ErrStatusRequired)
+	}
+	if b.createdAt.IsZero() {
+		b.errors = append(b.errors, ErrCreatedAtRequired)
+	}
+	if b.updatedAt.IsZero() {
+		b.errors = append(b.errors, ErrUpdatedAtRequired)
+	}
+	if len(b.errors) > 0 {
+		return WLRequest{}, errors.Join(b.errors...)
+	}
 	if b.arbiterID.IsZero() && b.status != StatusPending {
-		return WLRequest{}, fmt.Errorf("%w: arbiter ID is required for non-pending status", core.ErrInvalidState)
+		return WLRequest{}, ErrArbiterRequiredForNonPending
 	}
 	if b.status == StatusDeclined && b.declineReason.IsZero() {
-		return WLRequest{}, fmt.Errorf("%w: decline reason is required for declined status", core.ErrInvalidState)
+		return WLRequest{}, ErrDeclineReasonRequiredForDeclined
 	}
 
 	return WLRequest{
