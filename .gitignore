@@ -26,6 +26,9 @@ whitelist-bot
 # Go workspace file
 go.work
 
+# Mocks
+mocks_test.go
+
 # IDE
 .idea/
 .vscode/
