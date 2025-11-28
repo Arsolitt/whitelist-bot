@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:17-bookworm
+    image: postgres:18.1-bookworm
     ports:
       - "5432:5432"
     env_file:
@@ -27,6 +27,19 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  nats:
+    image: nats:2.12.1
+    container_name: nats
+    command: ["-c", "/etc/nats/nats.conf"]
+    environment:
+      - NATS_URL=nats://nats:4222
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - ./nats.conf:/etc/nats/nats.conf:ro
+      - nats-data:/data/jetstream
 
 volumes:
   postgres-data:
