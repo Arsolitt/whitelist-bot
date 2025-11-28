@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"whitelist-bot/internal/core"
 	"whitelist-bot/internal/core/utils"
 	domainUser "whitelist-bot/internal/domain/user"
 
@@ -11,14 +12,16 @@ import (
 )
 
 var (
-	ErrIDRequired                       = errors.New("ID required")
-	ErrRequesterIDRequired              = errors.New("requester ID required")
-	ErrNicknameRequired                 = errors.New("nickname required")
-	ErrStatusRequired                   = errors.New("status required")
-	ErrCreatedAtRequired                = errors.New("createdAt required")
-	ErrUpdatedAtRequired                = errors.New("updatedAt required")
-	ErrArbiterRequiredForNonPending     = errors.New("arbiter ID is required for non-pending status")
-	ErrDeclineReasonRequiredForDeclined = errors.New("decline reason is required for declined status")
+	ErrIDRequired                         = errors.New("ID required")
+	ErrRequesterIDRequired                = errors.New("requester ID required")
+	ErrNicknameRequired                   = errors.New("nickname required")
+	ErrStatusRequired                     = errors.New("status required")
+	ErrInvalidStatus                      = errors.New("invalid status")
+	ErrCreatedAtRequired                  = errors.New("createdAt required")
+	ErrUpdatedAtRequired                  = errors.New("updatedAt required")
+	ErrArbiterRequiredForNonPending       = errors.New("arbiter ID is required for non-pending status")
+	ErrDeclineReasonRequiredForDeclined   = errors.New("decline reason is required for declined status")
+	ErrDeclineReasonNotAllowedForApproved = errors.New("decline reason is not allowed for approved status")
 )
 
 type Builder struct {
@@ -44,7 +47,7 @@ func (b Builder) NewID() Builder {
 func (b Builder) IDFromString(id string) Builder {
 	idUUID, err := utils.UUIDFromString[ID](id)
 	if err != nil {
-		b.errors = append(b.errors, fmt.Errorf("failed to parse ID: %w", err))
+		b.errors = append(b.errors, fmt.Errorf("%w: %w", core.ErrFailedToParseID, err))
 		return b
 	}
 	return b.ID(ID(idUUID))
@@ -56,7 +59,7 @@ func (b Builder) IDFromUUID(id uuid.UUID) Builder {
 
 func (b Builder) ID(id ID) Builder {
 	if id.IsZero() {
-		b.errors = append(b.errors, errors.New("ID is required"))
+		b.errors = append(b.errors, ErrIDRequired)
 		return b
 	}
 	b.id = id
@@ -65,7 +68,7 @@ func (b Builder) ID(id ID) Builder {
 
 func (b Builder) RequesterID(requesterID RequesterID) Builder {
 	if requesterID.IsZero() {
-		b.errors = append(b.errors, errors.New("requester ID is required"))
+		b.errors = append(b.errors, ErrRequesterIDRequired)
 		return b
 	}
 	b.requesterID = requesterID
@@ -79,7 +82,7 @@ func (b Builder) RequesterIDFromUserID(userID domainUser.ID) Builder {
 func (b Builder) RequesterIDFromString(requesterID string) Builder {
 	requesterUUID, err := utils.UUIDFromString[ID](requesterID)
 	if err != nil {
-		b.errors = append(b.errors, fmt.Errorf("failed to parse ID: %w", err))
+		b.errors = append(b.errors, fmt.Errorf("%w: %w", core.ErrFailedToParseID, err))
 		return b
 	}
 	return b.RequesterID(RequesterID(requesterUUID))
@@ -87,7 +90,7 @@ func (b Builder) RequesterIDFromString(requesterID string) Builder {
 
 func (b Builder) Nickname(nickname Nickname) Builder {
 	if nickname.IsZero() {
-		b.errors = append(b.errors, errors.New("nickname is required"))
+		b.errors = append(b.errors, ErrNicknameRequired)
 		return b
 	}
 	if len(nickname) > maxNicknameLength {
@@ -110,7 +113,7 @@ func (b Builder) ArbiterID(arbiterID ArbiterID) Builder {
 func (b Builder) ArbiterIDFromString(arbiterID string) Builder {
 	arbiterUUID, err := utils.UUIDFromString[ID](arbiterID)
 	if err != nil {
-		b.errors = append(b.errors, fmt.Errorf("failed to parse arbiter ID: %w", err))
+		b.errors = append(b.errors, fmt.Errorf("%w: %w", core.ErrFailedToParseID, err))
 		return b
 	}
 	return b.ArbiterID(ArbiterID(arbiterUUID))
@@ -135,13 +138,13 @@ func (b Builder) DeclineReasonFromString(declineReason string) Builder {
 
 func (b Builder) Status(status Status) Builder {
 	if status.IsZero() {
-		b.errors = append(b.errors, errors.New("status is required"))
+		b.errors = append(b.errors, ErrStatusRequired)
 		return b
 	}
 	if status != StatusPending &&
 		status != StatusApproved &&
 		status != StatusDeclined {
-		b.errors = append(b.errors, fmt.Errorf("invalid status: %s", status))
+		b.errors = append(b.errors, fmt.Errorf("%w: %s", ErrInvalidStatus, status))
 		return b
 	}
 	b.status = status
@@ -154,7 +157,7 @@ func (b Builder) StatusFromString(status string) Builder {
 
 func (b Builder) CreatedAt(createdAt time.Time) Builder {
 	if createdAt.IsZero() {
-		b.errors = append(b.errors, errors.New("createdAt is required"))
+		b.errors = append(b.errors, ErrCreatedAtRequired)
 		return b
 	}
 	b.createdAt = createdAt
@@ -163,7 +166,7 @@ func (b Builder) CreatedAt(createdAt time.Time) Builder {
 
 func (b Builder) UpdatedAt(updatedAt time.Time) Builder {
 	if updatedAt.IsZero() {
-		b.errors = append(b.errors, errors.New("updatedAt is required"))
+		b.errors = append(b.errors, ErrUpdatedAtRequired)
 		return b
 	}
 	b.updatedAt = updatedAt
@@ -200,6 +203,9 @@ func (b Builder) Build() (WLRequest, error) {
 	}
 	if b.status == StatusDeclined && b.declineReason.IsZero() {
 		return WLRequest{}, ErrDeclineReasonRequiredForDeclined
+	}
+	if b.status == StatusApproved && !b.declineReason.IsZero() {
+		return WLRequest{}, ErrDeclineReasonNotAllowedForApproved
 	}
 
 	return WLRequest{
