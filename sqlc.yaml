@@ -1,5 +1,76 @@
+overrides:
+  go:
+    overrides:
+      - db_type: "uuid"
+        engine: "postgresql"
+        go_type:
+          import: "github.com/google/uuid"
+          type: "UUID"
+      - db_type: "timestamptz"
+        engine: "postgresql"
+        go_type:
+          import: "time"
+          type: "Time"
 version: "2"
 sql:
+  - name: "users-postgres"
+    engine: "postgresql"
+    schema: "migrations/postgres"
+    queries: "queries/postgres/user.sql"
+    gen:
+      go:
+        emit_json_tags: true
+        emit_pointers_for_null_types: true
+        emit_prepared_queries: true
+        package: "postgres"
+        out: "internal/repository/user/postgres"
+        sql_package: "pgx/v5"
+        overrides:
+          - column: "users.id"
+            go_type:
+              import: "whitelist-bot/internal/domain/user"
+              type: "ID"
+          - column: "users.first_name"
+            go_type:
+              import: "whitelist-bot/internal/domain/user"
+              type: "FirstName"
+          - column: "users.last_name"
+            go_type:
+              import: "whitelist-bot/internal/domain/user"
+              type: "LastName"
+          - column: "users.username"
+            go_type:
+              import: "whitelist-bot/internal/domain/user"
+              type: "Username"
+          - column: "users.telegram_id"
+            go_type:
+              import: "whitelist-bot/internal/domain/user"
+              type: "TelegramID"
+  - name: "wlrequests-postgres"
+    engine: "postgresql"
+    schema: "migrations/postgres"
+    queries: "queries/postgres/wlrequest.sql"
+    gen:
+      go:
+        emit_json_tags: true
+        emit_pointers_for_null_types: true
+        emit_prepared_queries: true
+        package: "postgres"
+        out: "internal/repository/wl_request/postgres"
+        sql_package: "pgx/v5"
+        overrides:
+          - column: "wl_requests.nickname"
+            go_type:
+              import: "whitelist-bot/internal/domain/wl_request"
+              type: "Nickname"
+          - column: "wl_requests.status"
+            go_type:
+              import: "whitelist-bot/internal/domain/wl_request"
+              type: "Status"
+          - column: "wl_requests.decline_reason"
+            go_type:
+              import: "whitelist-bot/internal/domain/wl_request"
+              type: "DeclineReason"
   - name: "users-sqlite"
     engine: "sqlite"
     schema: "migrations/sqlite"
@@ -52,14 +123,3 @@ sql:
             go_type:
               import: "whitelist-bot/internal/domain/wl_request"
               type: "DeclineReason"
-# overrides:
-#   go:
-#     overrides:
-#       - db_type: "uuid"
-#         go_type:
-#           import: "github.com/google/uuid"
-#           type: "UUID"
-#       - db_type: "timestamptz"
-#         go_type:
-#           import: "time"
-#           type: "Time"
