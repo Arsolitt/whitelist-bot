@@ -9,15 +9,17 @@ import (
 	"strings"
 
 	"whitelist-bot/internal/core"
+	"whitelist-bot/internal/core/db"
 	"whitelist-bot/internal/core/logger"
 	"whitelist-bot/internal/fsm"
 	memoryFSM "whitelist-bot/internal/fsm/memory"
 	"whitelist-bot/internal/handlers"
 	memoryLocker "whitelist-bot/internal/locker/memory"
-	sqliteUserRepository "whitelist-bot/internal/repository/user/sqlite"
-	sqliteWLRequestRepository "whitelist-bot/internal/repository/wl_request/sqlite"
 	"whitelist-bot/internal/router"
 	"whitelist-bot/internal/router/matcher"
+
+	postgresUserRepository "whitelist-bot/internal/repository/user/postgres"
+	sqliteWLRequestRepository "whitelist-bot/internal/repository/wl_request/sqlite"
 
 	"github.com/go-telegram/bot"
 
@@ -53,15 +55,24 @@ func main() {
 	fsmService := memoryFSM.NewFSM()
 
 	// TODO: move db connection to core package
-	db, err := sql.Open("sqlite3", "data/whitelist.db")
+	dbLITE, err := sql.Open("sqlite3", "data/whitelist.db")
 	if err != nil {
 		slog.Error("Failed to open database", "error", err.Error())
 		os.Exit(1)
 	}
-	defer db.Close()
+	defer dbLITE.Close()
 
-	userRepo := sqliteUserRepository.NewUserRepository(db)
-	wlRequestRepo := sqliteWLRequestRepository.NewWLRequestRepository(db)
+	dbPG, err := db.GetDB(ctx, cfg.Database.URL)
+	if err != nil {
+		slog.Error("Failed to get database", "error", err)
+		os.Exit(1)
+	}
+	defer dbPG.Close()
+
+	// userRepo := sqliteUserRepository.NewUserRepository(db)
+	wlRequestRepo := sqliteWLRequestRepository.NewWLRequestRepository(dbLITE)
+	userRepo := postgresUserRepository.NewUserRepository(dbPG)
+	// wlRequestRepo := postgresWLRequestRepository.NewWLRequestRepository(db)
 	h := handlers.New(userRepo, wlRequestRepo, cfg)
 	r := router.NewTelegramRouter(fsmService, lockerService, userRepo, h.GlobalErrorHandler, h.GlobalSuccessHandler)
 

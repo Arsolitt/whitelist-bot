@@ -23,7 +23,7 @@ type LogsConfig struct {
 }
 
 type DatabaseConfig struct {
-	Path         string `env:"PATH"           env-default:"whitelist.db" validate:"required"`
+	URL          string `env:"URL"           env-default:"./data/whitelist.db" validate:"required"`
 	MaxOpenConns int    `env:"MAX_OPEN_CONNS" env-default:"10"`
 	MaxIdleConns int    `env:"MAX_IDLE_CONNS" env-default:"5"`
 }
