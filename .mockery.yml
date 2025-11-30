@@ -21,4 +21,5 @@ packages:
       #   structname: "Mock{{.InterfaceName}}"
       interfaces:
         iUserRepository:
+        iWLRequestRepository:
         iMessageSender:
