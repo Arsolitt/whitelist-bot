@@ -24,17 +24,17 @@ type LogsConfig struct {
 }
 
 type SqliteConfig struct {
-	URL string `env:"URL"           env-default:"./data/whitelist.db" validate:"required"`
+	URL string `env:"URL" env-default:"./data/whitelist.db" validate:"required"`
 }
 
 type PostgresConfig struct {
-	URL string `env:"URL"           env-default:"postgres://app:app@127.0.0.1:5432/app" validate:"required"`
+	URL string `env:"URL" env-default:"postgres://app:app@127.0.0.1:5432/app" validate:"required"`
 }
 
 type TelegramConfig struct {
 	Token    string  `env:"TOKEN"     validate:"required"`
 	AdminIDs []int64 `env:"ADMIN_IDS" validate:"required,min=1"`
-	Debug    bool    `env:"DEBUG" env-default:"false"`
+	Debug    bool    `env:"DEBUG"                               env-default:"false"`
 }
 
 type ServerConfig struct {

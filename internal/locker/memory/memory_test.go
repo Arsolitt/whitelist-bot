@@ -40,7 +40,6 @@ func TestLocker_Concurrent_SameUser(t *testing.T) {
 
 	for range 10 {
 		wg.Go(func() {
-
 			locker.Lock(userID)
 			defer locker.Unlock(userID)
 
