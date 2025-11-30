@@ -59,6 +59,18 @@ sql:
         out: "internal/repository/wl_request/postgres"
         sql_package: "pgx/v5"
         overrides:
+          - column: "wl_requests.id"
+            go_type:
+              import: "whitelist-bot/internal/domain/wl_request"
+              type: "ID"
+          - column: "wl_requests.requester_id"
+            go_type:
+              import: "whitelist-bot/internal/domain/wl_request"
+              type: "RequesterID"
+          - column: "wl_requests.arbiter_id"
+            go_type:
+              import: "whitelist-bot/internal/domain/wl_request"
+              type: "ArbiterID"
           - column: "wl_requests.nickname"
             go_type:
               import: "whitelist-bot/internal/domain/wl_request"

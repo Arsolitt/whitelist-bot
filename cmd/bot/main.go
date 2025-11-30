@@ -18,7 +18,7 @@ import (
 	"whitelist-bot/internal/router/matcher"
 
 	postgresUserRepository "whitelist-bot/internal/repository/user/postgres"
-	sqliteWLRequestRepository "whitelist-bot/internal/repository/wl_request/sqlite"
+	postgresWLRequestRepository "whitelist-bot/internal/repository/wl_request/postgres"
 
 	"github.com/go-telegram/bot"
 )
@@ -64,10 +64,8 @@ func main() {
 	}
 	defer dbPG.Close()
 
-	// userRepo := sqliteUserRepository.NewUserRepository(db)
 	userRepo := postgresUserRepository.NewUserRepository(dbPG)
-	wlRequestRepo := sqliteWLRequestRepository.NewWLRequestRepository(dbSqlite)
-	// wlRequestRepo := postgresWLRequestRepository.NewWLRequestRepository(db)
+	wlRequestRepo := postgresWLRequestRepository.NewWLRequestRepository(dbPG)
 	h := handlers.New(userRepo, wlRequestRepo, cfg)
 	r := router.NewTelegramRouter(fsmService, lockerService, userRepo, h.GlobalErrorHandler, h.GlobalSuccessHandler)
 

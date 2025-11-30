@@ -22,4 +22,4 @@ WHERE id = $1;
 -- name: PendingWLRequests :many
 SELECT * FROM wl_requests
 WHERE status = 'pending'
-LIMIT $1;
+LIMIT sqlc.arg('limit')::bigint;
