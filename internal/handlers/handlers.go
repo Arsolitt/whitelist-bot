@@ -27,9 +27,32 @@ type iWLRequestRepository interface {
 	UpdateWLRequest(ctx context.Context, wlRequest domainWLRequest.WLRequest) (domainWLRequest.WLRequest, error)
 }
 
+type iMessageSender interface {
+	SendMessage(ctx context.Context, params *bot.SendMessageParams) (*models.Message, error)
+	AnswerCallbackQuery(ctx context.Context, params *bot.AnswerCallbackQueryParams) (bool, error)
+}
+
+type botMessageSender struct {
+	b *bot.Bot
+}
+
+// NewBotMessageSender creates iMessageSender from bot.Bot
+func NewBotMessageSender(b *bot.Bot) iMessageSender {
+	return botMessageSender{b: b}
+}
+
+func (s botMessageSender) SendMessage(ctx context.Context, params *bot.SendMessageParams) (*models.Message, error) {
+	return s.b.SendMessage(ctx, params)
+}
+
+func (s botMessageSender) AnswerCallbackQuery(ctx context.Context, params *bot.AnswerCallbackQueryParams) (bool, error) {
+	return s.b.AnswerCallbackQuery(ctx, params)
+}
+
 type Handlers struct {
 	useRepo       iUserRepository
 	wlRequestRepo iWLRequestRepository
+	sender        iMessageSender
 	config        core.Config
 }
 
@@ -37,11 +60,28 @@ func New(useRepo iUserRepository, wlRequestRepo iWLRequestRepository, config cor
 	return &Handlers{useRepo: useRepo, wlRequestRepo: wlRequestRepo, config: config}
 }
 
+func NewWithSender(
+	useRepo iUserRepository,
+	wlRequestRepo iWLRequestRepository,
+	sender iMessageSender,
+	config core.Config,
+) *Handlers {
+	return &Handlers{
+		useRepo:       useRepo,
+		wlRequestRepo: wlRequestRepo,
+		sender:        sender,
+		config:        config,
+	}
+}
+
 func (h Handlers) botAnswerCallbackQuery(
 	ctx context.Context,
 	b *bot.Bot,
 	params *bot.AnswerCallbackQueryParams,
 ) (bool, error) {
+	if h.sender != nil {
+		return h.sender.AnswerCallbackQuery(ctx, params)
+	}
 	return b.AnswerCallbackQuery(ctx, params)
 }
 
@@ -50,5 +90,8 @@ func (h Handlers) botSendMessage(
 	b *bot.Bot,
 	params *bot.SendMessageParams,
 ) (*models.Message, error) {
+	if h.sender != nil {
+		return h.sender.SendMessage(ctx, params)
+	}
 	return b.SendMessage(ctx, params)
 }

@@ -21,6 +21,52 @@ const PENDING_WL_REQUESTS_LIMIT = 5
 
 // TODO: rewrite routing for callback queries.
 
+type pendingWLRequestMessage struct {
+	Text        string
+	ReplyMarkup *models.InlineKeyboardMarkup
+}
+
+func (h Handlers) preparePendingWLRequestMessages(ctx context.Context) ([]pendingWLRequestMessage, error) {
+	wlRequests, err := h.wlRequestRepo.PendingWLRequests(ctx, PENDING_WL_REQUESTS_LIMIT)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pending wl requests: %w", err)
+	}
+
+	if len(wlRequests) == 0 {
+		return nil, nil
+	}
+
+	messages := make([]pendingWLRequestMessage, 0, len(wlRequests))
+	for _, wlRequest := range wlRequests {
+		requester, err := h.useRepo.UserByID(ctx, domainUser.ID(wlRequest.RequesterID()))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get requester: %w", err)
+		}
+
+		keyboard := &models.InlineKeyboardMarkup{
+			InlineKeyboard: [][]models.InlineKeyboardButton{
+				{
+					{
+						Text:         "✅ Подтвердить",
+						CallbackData: callbacks.ApproveWLRequestData(ctx, wlRequest.ID()),
+					},
+					{
+						Text:         "❌ Отказать",
+						CallbackData: callbacks.DeclineWLRequestData(ctx, wlRequest.ID()),
+					},
+				},
+			},
+		}
+
+		messages = append(messages, pendingWLRequestMessage{
+			Text:        msgs.PendingWLRequest(wlRequest, requester),
+			ReplyMarkup: keyboard,
+		})
+	}
+
+	return messages, nil
+}
+
 func (h Handlers) NewWLRequest(
 	ctx context.Context,
 	b *bot.Bot,
@@ -77,11 +123,12 @@ func (h Handlers) ViewPendingWLRequests(
 	update *models.Update,
 	state fsm.State,
 ) (fsm.State, *bot.SendMessageParams, error) {
-	wlRequests, err := h.wlRequestRepo.PendingWLRequests(ctx, PENDING_WL_REQUESTS_LIMIT)
+	messages, err := h.preparePendingWLRequestMessages(ctx)
 	if err != nil {
-		return state, nil, fmt.Errorf("failed to get  pending wl request: %w", err)
+		return state, nil, err
 	}
-	if len(wlRequests) == 0 {
+
+	if len(messages) == 0 {
 		msgParams := &bot.SendMessageParams{
 			ChatID:    update.Message.Chat.ID,
 			Text:      msgs.NoPendingWLRequests(),
@@ -90,32 +137,12 @@ func (h Handlers) ViewPendingWLRequests(
 		return state, msgParams, nil
 	}
 
-	for _, wlRequest := range wlRequests {
-		keyboard := &models.InlineKeyboardMarkup{
-			InlineKeyboard: [][]models.InlineKeyboardButton{
-				{
-					{
-						Text:         "✅ Подтвердить",
-						CallbackData: callbacks.ApproveWLRequestData(ctx, wlRequest.ID()),
-					},
-					{
-						Text:         "❌ Отказать",
-						CallbackData: callbacks.DeclineWLRequestData(ctx, wlRequest.ID()),
-					},
-				},
-			},
-		}
-
-		requester, err := h.useRepo.UserByID(ctx, domainUser.ID(wlRequest.RequesterID()))
-		if err != nil {
-			return state, nil, fmt.Errorf("failed to get requester: %w", err)
-		}
-
+	for _, msg := range messages {
 		_, err = h.botSendMessage(ctx, b, &bot.SendMessageParams{
 			ChatID:      update.Message.Chat.ID,
-			Text:        msgs.PendingWLRequest(wlRequest, requester),
+			Text:        msg.Text,
 			ParseMode:   "HTML",
-			ReplyMarkup: keyboard,
+			ReplyMarkup: msg.ReplyMarkup,
 		})
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to send message", logger.ErrorField, err.Error())
