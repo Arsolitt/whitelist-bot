@@ -30,6 +30,7 @@ type iWLRequestRepository interface {
 type iMessageSender interface {
 	SendMessage(ctx context.Context, params *bot.SendMessageParams) (*models.Message, error)
 	AnswerCallbackQuery(ctx context.Context, params *bot.AnswerCallbackQueryParams) (bool, error)
+	EditMessageText(ctx context.Context, params *bot.EditMessageTextParams) (*models.Message, error)
 }
 
 type botMessageSender struct {
@@ -47,6 +48,10 @@ func (s botMessageSender) SendMessage(ctx context.Context, params *bot.SendMessa
 
 func (s botMessageSender) AnswerCallbackQuery(ctx context.Context, params *bot.AnswerCallbackQueryParams) (bool, error) {
 	return s.b.AnswerCallbackQuery(ctx, params)
+}
+
+func (s botMessageSender) EditMessageText(ctx context.Context, params *bot.EditMessageTextParams) (*models.Message, error) {
+	return s.b.EditMessageText(ctx, params)
 }
 
 type Handlers struct {
@@ -94,4 +99,15 @@ func (h Handlers) botSendMessage(
 		return h.sender.SendMessage(ctx, params)
 	}
 	return b.SendMessage(ctx, params)
+}
+
+func (h Handlers) botEditMessageText(
+	ctx context.Context,
+	b *bot.Bot,
+	params *bot.EditMessageTextParams,
+) (*models.Message, error) {
+	if h.sender != nil {
+		return h.sender.EditMessageText(ctx, params)
+	}
+	return b.EditMessageText(ctx, params)
 }
