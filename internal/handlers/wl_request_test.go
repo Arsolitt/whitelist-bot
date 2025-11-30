@@ -28,7 +28,7 @@ func TestHandlers_ViewPendingWLRequests_Success(t *testing.T) {
 	// Test data
 	now := time.Now()
 	user, err := domainUser.NewBuilder().
-		IDFromString("550e8400-e29b-41d4-a716-446655440000").
+		NewID().
 		TelegramIDFromInt(123456).
 		UsernameFromString("testuser").
 		CreatedAt(now).
@@ -38,7 +38,7 @@ func TestHandlers_ViewPendingWLRequests_Success(t *testing.T) {
 	userID := user.ID()
 
 	wlRequest, err := domainWLRequest.NewBuilder().
-		IDFromString("550e8400-e29b-41d4-a716-446655440001").
+		NewID().
 		RequesterIDFromUserID(userID).
 		NicknameFromString("testnick").
 		StatusFromString(string(domainWLRequest.StatusPending)).
@@ -95,7 +95,7 @@ func TestHandlers_ViewPendingWLRequests_MultipleRequests(t *testing.T) {
 	// Create multiple users and requests
 	now := time.Now()
 	user1, _ := domainUser.NewBuilder().
-		IDFromString("550e8400-e29b-41d4-a716-446655440010").
+		NewID().
 		TelegramIDFromInt(111).
 		UsernameFromString("user1").
 		CreatedAt(now).
@@ -104,7 +104,7 @@ func TestHandlers_ViewPendingWLRequests_MultipleRequests(t *testing.T) {
 	user1ID := user1.ID()
 
 	user2, _ := domainUser.NewBuilder().
-		IDFromString("550e8400-e29b-41d4-a716-446655440011").
+		NewID().
 		TelegramIDFromInt(222).
 		UsernameFromString("user2").
 		CreatedAt(now).
@@ -113,7 +113,7 @@ func TestHandlers_ViewPendingWLRequests_MultipleRequests(t *testing.T) {
 	user2ID := user2.ID()
 
 	wlReq1, _ := domainWLRequest.NewBuilder().
-		IDFromString("550e8400-e29b-41d4-a716-446655440020").
+		NewID().
 		RequesterIDFromUserID(user1ID).
 		NicknameFromString("nick1").
 		StatusFromString(string(domainWLRequest.StatusPending)).
@@ -122,7 +122,7 @@ func TestHandlers_ViewPendingWLRequests_MultipleRequests(t *testing.T) {
 		Build()
 
 	wlReq2, _ := domainWLRequest.NewBuilder().
-		IDFromString("550e8400-e29b-41d4-a716-446655440021").
+		NewID().
 		RequesterIDFromUserID(user2ID).
 		NicknameFromString("nick2").
 		StatusFromString(string(domainWLRequest.StatusPending)).
@@ -235,7 +235,7 @@ func TestHandlers_ViewPendingWLRequests_UserNotFoundError(t *testing.T) {
 
 	now := time.Now()
 	user, _ := domainUser.NewBuilder().
-		IDFromString("550e8400-e29b-41d4-a716-446655440030").
+		NewID().
 		TelegramIDFromInt(123).
 		UsernameFromString("testuser").
 		CreatedAt(now).
@@ -244,7 +244,7 @@ func TestHandlers_ViewPendingWLRequests_UserNotFoundError(t *testing.T) {
 	userID := user.ID()
 
 	wlRequest, _ := domainWLRequest.NewBuilder().
-		IDFromString("550e8400-e29b-41d4-a716-446655440031").
+		NewID().
 		RequesterIDFromUserID(userID).
 		NicknameFromString("testnick").
 		StatusFromString(string(domainWLRequest.StatusPending)).
@@ -289,7 +289,7 @@ func TestHandlers_ViewPendingWLRequests_SendMessageError_ContinuesProcessing(t *
 	// Create two users and requests
 	now := time.Now()
 	user1, _ := domainUser.NewBuilder().
-		IDFromString("550e8400-e29b-41d4-a716-446655440040").
+		NewID().
 		TelegramIDFromInt(111).
 		UsernameFromString("user1").
 		CreatedAt(now).
@@ -298,7 +298,7 @@ func TestHandlers_ViewPendingWLRequests_SendMessageError_ContinuesProcessing(t *
 	user1ID := user1.ID()
 
 	user2, _ := domainUser.NewBuilder().
-		IDFromString("550e8400-e29b-41d4-a716-446655440041").
+		NewID().
 		TelegramIDFromInt(222).
 		UsernameFromString("user2").
 		CreatedAt(now).
@@ -307,7 +307,7 @@ func TestHandlers_ViewPendingWLRequests_SendMessageError_ContinuesProcessing(t *
 	user2ID := user2.ID()
 
 	wlReq1, _ := domainWLRequest.NewBuilder().
-		IDFromString("550e8400-e29b-41d4-a716-446655440050").
+		NewID().
 		RequesterIDFromUserID(user1ID).
 		NicknameFromString("nick1").
 		StatusFromString(string(domainWLRequest.StatusPending)).
@@ -316,7 +316,7 @@ func TestHandlers_ViewPendingWLRequests_SendMessageError_ContinuesProcessing(t *
 		Build()
 
 	wlReq2, _ := domainWLRequest.NewBuilder().
-		IDFromString("550e8400-e29b-41d4-a716-446655440051").
+		NewID().
 		RequesterIDFromUserID(user2ID).
 		NicknameFromString("nick2").
 		StatusFromString(string(domainWLRequest.StatusPending)).
