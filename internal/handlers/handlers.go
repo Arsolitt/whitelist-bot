@@ -37,7 +37,7 @@ type botMessageSender struct {
 	b *bot.Bot
 }
 
-// NewBotMessageSender creates iMessageSender from bot.Bot
+// NewBotMessageSender creates iMessageSender from bot.Bot.
 func NewBotMessageSender(b *bot.Bot) iMessageSender {
 	return botMessageSender{b: b}
 }
@@ -46,11 +46,17 @@ func (s botMessageSender) SendMessage(ctx context.Context, params *bot.SendMessa
 	return s.b.SendMessage(ctx, params)
 }
 
-func (s botMessageSender) AnswerCallbackQuery(ctx context.Context, params *bot.AnswerCallbackQueryParams) (bool, error) {
+func (s botMessageSender) AnswerCallbackQuery(
+	ctx context.Context,
+	params *bot.AnswerCallbackQueryParams,
+) (bool, error) {
 	return s.b.AnswerCallbackQuery(ctx, params)
 }
 
-func (s botMessageSender) EditMessageText(ctx context.Context, params *bot.EditMessageTextParams) (*models.Message, error) {
+func (s botMessageSender) EditMessageText(
+	ctx context.Context,
+	params *bot.EditMessageTextParams,
+) (*models.Message, error) {
 	return s.b.EditMessageText(ctx, params)
 }
 
