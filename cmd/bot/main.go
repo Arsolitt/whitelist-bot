@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -22,14 +21,11 @@ import (
 	sqliteWLRequestRepository "whitelist-bot/internal/repository/wl_request/sqlite"
 
 	"github.com/go-telegram/bot"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // TODO: write tests !!!!!!!!!!
-// TODO: refactor FSM to store json metadata for each state.
-// TODO: add scheduler for checking pending wl requests and sending notifications to admins.
-// TODO: add notification to user when their wl request is approved or declined.
+// TODO: refactor FSM to store metadata for each state.
+// TODO: add event system for notifications.
 // TODO: add validation for nickname. Length, special characters, etc.
 // TODO: refactor wl_request.go handlers for better readability.
 // TODO: add emojis to messages.
@@ -54,24 +50,23 @@ func main() {
 	lockerService := memoryLocker.New()
 	fsmService := memoryFSM.NewFSM()
 
-	// TODO: move db connection to core package
-	dbLITE, err := sql.Open("sqlite3", "data/whitelist.db")
+	dbSqlite, err := db.GetSqliteDB(ctx, cfg.Sqlite.URL)
 	if err != nil {
-		slog.Error("Failed to open database", "error", err.Error())
+		slog.Error("Failed to open sqlite database", "error", err.Error())
 		os.Exit(1)
 	}
-	defer dbLITE.Close()
+	defer dbSqlite.Close()
 
-	dbPG, err := db.GetDB(ctx, cfg.Database.URL)
+	dbPG, err := db.GetPostgresDB(ctx, cfg.Postgres.URL)
 	if err != nil {
-		slog.Error("Failed to get database", "error", err)
+		slog.Error("Failed to connect to postgres database", "error", err.Error())
 		os.Exit(1)
 	}
 	defer dbPG.Close()
 
 	// userRepo := sqliteUserRepository.NewUserRepository(db)
-	wlRequestRepo := sqliteWLRequestRepository.NewWLRequestRepository(dbLITE)
 	userRepo := postgresUserRepository.NewUserRepository(dbPG)
+	wlRequestRepo := sqliteWLRequestRepository.NewWLRequestRepository(dbSqlite)
 	// wlRequestRepo := postgresWLRequestRepository.NewWLRequestRepository(db)
 	h := handlers.New(userRepo, wlRequestRepo, cfg)
 	r := router.NewTelegramRouter(fsmService, lockerService, userRepo, h.GlobalErrorHandler, h.GlobalSuccessHandler)

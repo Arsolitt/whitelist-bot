@@ -10,7 +10,8 @@ import (
 
 type Config struct {
 	Logs     LogsConfig     `env-prefix:"LOGS_"`
-	Database DatabaseConfig `env-prefix:"DATABASE_"`
+	Sqlite   SqliteConfig   `env-prefix:"SQLITE_"`
+	Postgres PostgresConfig `env-prefix:"POSTGRES_"`
 	Telegram TelegramConfig `env-prefix:"TELEGRAM_"`
 	Server   ServerConfig   `env-prefix:"SERVER_"`
 }
@@ -22,16 +23,18 @@ type LogsConfig struct {
 	WithSources bool   `env:"WITH_SOURCES" env-default:"false"`
 }
 
-type DatabaseConfig struct {
-	URL          string `env:"URL"           env-default:"./data/whitelist.db" validate:"required"`
-	MaxOpenConns int    `env:"MAX_OPEN_CONNS" env-default:"10"`
-	MaxIdleConns int    `env:"MAX_IDLE_CONNS" env-default:"5"`
+type SqliteConfig struct {
+	URL string `env:"URL"           env-default:"./data/whitelist.db" validate:"required"`
+}
+
+type PostgresConfig struct {
+	URL string `env:"URL"           env-default:"postgres://app:app@127.0.0.1:5432/app" validate:"required"`
 }
 
 type TelegramConfig struct {
 	Token    string  `env:"TOKEN"     validate:"required"`
 	AdminIDs []int64 `env:"ADMIN_IDS" validate:"required,min=1"`
-	Debug    bool    `env:"DEBUG"                               env-default:"false"`
+	Debug    bool    `env:"DEBUG" env-default:"false"`
 }
 
 type ServerConfig struct {
