@@ -21,7 +21,7 @@ func (h *Handlers) Info(
 		return currentState, nil, core.ErrInvalidUserState
 	}
 
-	user, err := h.useRepo.UserByTelegramID(ctx, update.Message.From.ID)
+	user, err := h.userRepo.UserByTelegramID(ctx, update.Message.From.ID)
 	if err != nil {
 		return fsm.StateIdle, nil, fmt.Errorf("failed to get user: %w", err)
 	}

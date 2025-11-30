@@ -43,7 +43,7 @@ func (h Handlers) SubmitWLRequestNickname(
 	state fsm.State,
 ) (fsm.State, *bot.SendMessageParams, error) {
 	// TODO: add validation for nickname. Length, special characters, etc.
-	user, err := h.useRepo.UserByTelegramID(ctx, update.Message.From.ID)
+	user, err := h.userRepo.UserByTelegramID(ctx, update.Message.From.ID)
 	if err != nil {
 		return fsm.StateWaitingWLNickname, nil, fmt.Errorf("failed to get user: %w", err)
 	}

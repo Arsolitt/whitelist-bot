@@ -102,8 +102,8 @@ func TestHandlers_Info(t *testing.T) {
 			tt.setupMock(mockRepo)
 
 			h := &Handlers{
-				useRepo: mockRepo,
-				config:  core.Config{},
+				userRepo: mockRepo,
+				config:   core.Config{},
 			}
 
 			update := &models.Update{

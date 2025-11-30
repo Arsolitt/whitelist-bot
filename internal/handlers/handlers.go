@@ -55,24 +55,24 @@ func (s botMessageSender) EditMessageText(ctx context.Context, params *bot.EditM
 }
 
 type Handlers struct {
-	useRepo       iUserRepository
+	userRepo      iUserRepository
 	wlRequestRepo iWLRequestRepository
 	sender        iMessageSender
 	config        core.Config
 }
 
-func New(useRepo iUserRepository, wlRequestRepo iWLRequestRepository, config core.Config) *Handlers {
-	return &Handlers{useRepo: useRepo, wlRequestRepo: wlRequestRepo, config: config}
+func New(userRepo iUserRepository, wlRequestRepo iWLRequestRepository, config core.Config) *Handlers {
+	return &Handlers{userRepo: userRepo, wlRequestRepo: wlRequestRepo, config: config}
 }
 
 func NewWithSender(
-	useRepo iUserRepository,
+	userRepo iUserRepository,
 	wlRequestRepo iWLRequestRepository,
 	sender iMessageSender,
 	config core.Config,
 ) *Handlers {
 	return &Handlers{
-		useRepo:       useRepo,
+		userRepo:      userRepo,
 		wlRequestRepo: wlRequestRepo,
 		sender:        sender,
 		config:        config,

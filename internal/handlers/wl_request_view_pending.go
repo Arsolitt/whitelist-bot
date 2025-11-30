@@ -62,7 +62,7 @@ func (h Handlers) preparePendingWLRequestMessages(ctx context.Context) ([]pendin
 
 	messages := make([]pendingWLRequestMessage, 0, len(wlRequests))
 	for _, wlRequest := range wlRequests {
-		requester, err := h.useRepo.UserByID(ctx, domainUser.ID(wlRequest.RequesterID()))
+		requester, err := h.userRepo.UserByID(ctx, domainUser.ID(wlRequest.RequesterID()))
 		if err != nil {
 			return nil, fmt.Errorf("failed to get requester: %w", err)
 		}

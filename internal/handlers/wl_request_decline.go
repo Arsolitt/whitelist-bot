@@ -42,7 +42,7 @@ func (h Handlers) DeclineWLRequest(
 	}
 	slog.DebugContext(ctx, "WL request fetched from database")
 
-	arbiter, err := h.useRepo.UserByTelegramID(ctx, update.CallbackQuery.From.ID)
+	arbiter, err := h.userRepo.UserByTelegramID(ctx, update.CallbackQuery.From.ID)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to get arbiter", logger.ErrorField, err.Error())
 		h.sendCallbackError(ctx, b, update.CallbackQuery.ID, "не удалось получить арбитра")
@@ -51,7 +51,7 @@ func (h Handlers) DeclineWLRequest(
 	ctx = logger.WithLogValue(ctx, logger.ArbiterIDField, arbiter.ID().String())
 	slog.DebugContext(ctx, "Arbiter fetched from database")
 
-	requester, err := h.useRepo.UserByID(ctx, domainUser.ID(dbWLRequest.RequesterID()))
+	requester, err := h.userRepo.UserByID(ctx, domainUser.ID(dbWLRequest.RequesterID()))
 	if err != nil {
 		h.sendCallbackError(ctx, b, update.CallbackQuery.ID, "не удалось получить заявителя")
 		return state, nil, fmt.Errorf("failed to get requester: %w", err)
