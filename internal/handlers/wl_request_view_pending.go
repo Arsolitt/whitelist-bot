@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"whitelist-bot/internal/callbacks"
 	"whitelist-bot/internal/core/logger"
-	domainUser "whitelist-bot/internal/domain/user"
 	"whitelist-bot/internal/fsm"
 	"whitelist-bot/internal/msgs"
 
@@ -51,7 +50,7 @@ func (h Handlers) ViewPendingWLRequests(
 }
 
 func (h Handlers) preparePendingWLRequestMessages(ctx context.Context) ([]pendingWLRequestMessage, error) {
-	wlRequests, err := h.wlRequestRepo.PendingWLRequests(ctx, PENDING_WL_REQUESTS_LIMIT)
+	wlRequests, err := h.wlRequestRepo.PendingWLRequestsWithRequester(ctx, PENDING_WL_REQUESTS_LIMIT)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pending wl requests: %w", err)
 	}
@@ -62,28 +61,28 @@ func (h Handlers) preparePendingWLRequestMessages(ctx context.Context) ([]pendin
 
 	messages := make([]pendingWLRequestMessage, 0, len(wlRequests))
 	for _, wlRequest := range wlRequests {
-		requester, err := h.userRepo.UserByID(ctx, domainUser.ID(wlRequest.RequesterID()))
-		if err != nil {
-			return nil, fmt.Errorf("failed to get requester: %w", err)
-		}
+		// requester, err := h.userRepo.UserByID(ctx, domainUser.ID(wlRequest.RequesterID()))
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to get requester: %w", err)
+		// }
 
 		keyboard := &models.InlineKeyboardMarkup{
 			InlineKeyboard: [][]models.InlineKeyboardButton{
 				{
 					{
 						Text:         "✅ Подтвердить",
-						CallbackData: callbacks.ApproveWLRequestData(ctx, wlRequest.ID()),
+						CallbackData: callbacks.ApproveWLRequestData(ctx, wlRequest.WlRequest.ID()),
 					},
 					{
 						Text:         "❌ Отказать",
-						CallbackData: callbacks.DeclineWLRequestData(ctx, wlRequest.ID()),
+						CallbackData: callbacks.DeclineWLRequestData(ctx, wlRequest.WlRequest.ID()),
 					},
 				},
 			},
 		}
 
 		messages = append(messages, pendingWLRequestMessage{
-			Text:        msgs.PendingWLRequest(wlRequest, requester),
+			Text:        msgs.PendingWLRequest(wlRequest.WlRequest, wlRequest.User),
 			ReplyMarkup: keyboard,
 		})
 	}

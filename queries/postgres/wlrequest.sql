@@ -23,3 +23,9 @@ WHERE id = $1;
 SELECT * FROM wl_requests
 WHERE status = 'pending'
 LIMIT sqlc.arg('limit')::bigint;
+
+-- name: PendingWLRequestsWithRequester :many
+SELECT sqlc.embed(wl_requests), sqlc.embed(users) FROM wl_requests
+JOIN users ON wl_requests.requester_id = users.id
+WHERE status = 'pending'
+LIMIT sqlc.arg('limit')::bigint;

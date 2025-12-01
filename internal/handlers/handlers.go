@@ -6,6 +6,7 @@ import (
 	"whitelist-bot/internal/core"
 	domainUser "whitelist-bot/internal/domain/user"
 	domainWLRequest "whitelist-bot/internal/domain/wl_request"
+	repository "whitelist-bot/internal/repository/wl_request"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -23,6 +24,7 @@ type iWLRequestRepository interface {
 		nickname domainWLRequest.Nickname,
 	) (domainWLRequest.WLRequest, error)
 	PendingWLRequests(ctx context.Context, limit int64) ([]domainWLRequest.WLRequest, error)
+	PendingWLRequestsWithRequester(ctx context.Context, limit int64) ([]repository.PendingWLRequestWithRequester, error)
 	WLRequestByID(ctx context.Context, id domainWLRequest.ID) (domainWLRequest.WLRequest, error)
 	UpdateWLRequest(ctx context.Context, wlRequest domainWLRequest.WLRequest) (domainWLRequest.WLRequest, error)
 }

@@ -10,7 +10,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
+	domainUser "whitelist-bot/internal/domain/user"
 	domainWLRequest "whitelist-bot/internal/domain/wl_request"
+	repository "whitelist-bot/internal/repository/wl_request"
 )
 
 type iQueryable interface {
@@ -94,6 +96,46 @@ func (r *WLRequestRepository) PendingWLRequests(ctx context.Context, limit int64
 		if err != nil {
 			return nil, fmt.Errorf("failed to build wl request: %s: %w", dbWLRequest.ID, err)
 		}
+	}
+	return pendingWLRequests, nil
+}
+
+func (r *WLRequestRepository) PendingWLRequestsWithRequester(ctx context.Context, limit int64) ([]repository.PendingWLRequestWithRequester, error) {
+	q := New(r.db)
+
+	dbRows, err := q.PendingWLRequestsWithRequester(ctx, limit)
+	pendingWLRequests := make([]repository.PendingWLRequestWithRequester, 0, len(dbRows))
+	if err != nil {
+		return pendingWLRequests, fmt.Errorf("failed to get pending wl requests with requester: %w", err)
+	}
+	for _, dbRow := range dbRows {
+		wlRequest, err := domainWLRequest.NewBuilder().
+			ID(dbRow.WlRequest.ID).
+			Status(dbRow.WlRequest.Status).
+			RequesterID(dbRow.WlRequest.RequesterID).
+			Nickname(dbRow.WlRequest.Nickname).
+			CreatedAt(dbRow.WlRequest.CreatedAt).
+			UpdatedAt(dbRow.WlRequest.UpdatedAt).
+			Build()
+		if err != nil {
+			return pendingWLRequests, fmt.Errorf("failed to build wl request: %w", err)
+		}
+		user, err := domainUser.NewBuilder().
+			ID(dbRow.User.ID).
+			TelegramID(dbRow.User.TelegramID).
+			FirstName(dbRow.User.FirstName).
+			LastName(dbRow.User.LastName).
+			Username(dbRow.User.Username).
+			CreatedAt(dbRow.User.CreatedAt).
+			UpdatedAt(dbRow.User.UpdatedAt).
+			Build()
+		if err != nil {
+			return pendingWLRequests, fmt.Errorf("failed to build user: %w", err)
+		}
+		pendingWLRequests = append(pendingWLRequests, repository.PendingWLRequestWithRequester{
+			WlRequest: wlRequest,
+			User:      user,
+		})
 	}
 	return pendingWLRequests, nil
 }
