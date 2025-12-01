@@ -10,6 +10,7 @@ import (
 
 	domainUser "whitelist-bot/internal/domain/user"
 	domainWLRequest "whitelist-bot/internal/domain/wl_request"
+	wlRequestRepo "whitelist-bot/internal/repository/wl_request"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -55,13 +56,10 @@ func TestHandlers_ViewPendingWLRequests_Success(t *testing.T) {
 
 	// Setup expectations
 	mockWLRepo.EXPECT().
-		PendingWLRequests(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
-		Return([]domainWLRequest.WLRequest{wlRequest}, nil).
-		Once()
-
-	mockUserRepo.EXPECT().
-		UserByID(ctx, userID).
-		Return(user, nil).
+		PendingWLRequestsWithRequester(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
+		Return([]wlRequestRepo.PendingWLRequestWithRequester{
+			{WlRequest: wlRequest, User: user},
+		}, nil).
 		Once()
 
 	mockSender.EXPECT().
@@ -138,18 +136,11 @@ func TestHandlers_ViewPendingWLRequests_MultipleRequests(t *testing.T) {
 
 	// Setup expectations
 	mockWLRepo.EXPECT().
-		PendingWLRequests(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
-		Return([]domainWLRequest.WLRequest{wlReq1, wlReq2}, nil).
-		Once()
-
-	mockUserRepo.EXPECT().
-		UserByID(ctx, user1ID).
-		Return(user1, nil).
-		Once()
-
-	mockUserRepo.EXPECT().
-		UserByID(ctx, user2ID).
-		Return(user2, nil).
+		PendingWLRequestsWithRequester(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
+		Return([]wlRequestRepo.PendingWLRequestWithRequester{
+			{WlRequest: wlReq1, User: user1},
+			{WlRequest: wlReq2, User: user2},
+		}, nil).
 		Once()
 
 	mockSender.EXPECT().
@@ -181,8 +172,8 @@ func TestHandlers_ViewPendingWLRequests_NoRequests(t *testing.T) {
 
 	// Empty list of requests
 	mockWLRepo.EXPECT().
-		PendingWLRequests(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
-		Return([]domainWLRequest.WLRequest{}, nil).
+		PendingWLRequestsWithRequester(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
+		Return([]wlRequestRepo.PendingWLRequestWithRequester{}, nil).
 		Once()
 
 	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
@@ -212,7 +203,7 @@ func TestHandlers_ViewPendingWLRequests_RepositoryError(t *testing.T) {
 
 	expectedErr := errors.New("database connection failed")
 	mockWLRepo.EXPECT().
-		PendingWLRequests(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
+		PendingWLRequestsWithRequester(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
 		Return(nil, expectedErr).
 		Once()
 
@@ -222,59 +213,6 @@ func TestHandlers_ViewPendingWLRequests_RepositoryError(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get pending wl requests")
-	assert.Equal(t, fsm.StateIdle, state)
-	assert.Nil(t, msgParams)
-}
-
-func TestHandlers_ViewPendingWLRequests_UserNotFoundError(t *testing.T) {
-	ctx := context.Background()
-
-	mockUserRepo := newMockiUserRepository(t)
-	mockWLRepo := newMockiWLRequestRepository(t)
-	mockSender := newMockiMessageSender(t)
-
-	now := time.Now()
-	user, _ := domainUser.NewBuilder().
-		NewID().
-		TelegramIDFromInt(123).
-		UsernameFromString("testuser").
-		CreatedAt(now).
-		UpdatedAt(now).
-		Build()
-	userID := user.ID()
-
-	wlRequest, _ := domainWLRequest.NewBuilder().
-		NewID().
-		RequesterIDFromUserID(userID).
-		NicknameFromString("testnick").
-		StatusFromString(string(domainWLRequest.StatusPending)).
-		CreatedAt(now).
-		UpdatedAt(now).
-		Build()
-
-	update := &models.Update{
-		Message: &models.Message{
-			Chat: models.Chat{ID: 789},
-		},
-	}
-
-	mockWLRepo.EXPECT().
-		PendingWLRequests(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
-		Return([]domainWLRequest.WLRequest{wlRequest}, nil).
-		Once()
-
-	userErr := errors.New("user not found")
-	mockUserRepo.EXPECT().
-		UserByID(ctx, userID).
-		Return(domainUser.User{}, userErr).
-		Once()
-
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.ViewPendingWLRequests(ctx, nil, update, fsm.StateIdle)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get requester")
 	assert.Equal(t, fsm.StateIdle, state)
 	assert.Nil(t, msgParams)
 }
@@ -331,18 +269,11 @@ func TestHandlers_ViewPendingWLRequests_SendMessageError_ContinuesProcessing(t *
 	}
 
 	mockWLRepo.EXPECT().
-		PendingWLRequests(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
-		Return([]domainWLRequest.WLRequest{wlReq1, wlReq2}, nil).
-		Once()
-
-	mockUserRepo.EXPECT().
-		UserByID(ctx, user1ID).
-		Return(user1, nil).
-		Once()
-
-	mockUserRepo.EXPECT().
-		UserByID(ctx, user2ID).
-		Return(user2, nil).
+		PendingWLRequestsWithRequester(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
+		Return([]wlRequestRepo.PendingWLRequestWithRequester{
+			{WlRequest: wlReq1, User: user1},
+			{WlRequest: wlReq2, User: user2},
+		}, nil).
 		Once()
 
 	// First message fails
