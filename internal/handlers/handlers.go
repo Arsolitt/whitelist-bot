@@ -6,6 +6,7 @@ import (
 	"whitelist-bot/internal/core"
 	domainUser "whitelist-bot/internal/domain/user"
 	domainWLRequest "whitelist-bot/internal/domain/wl_request"
+	"whitelist-bot/internal/metastore"
 	repository "whitelist-bot/internal/repository/wl_request"
 
 	"github.com/go-telegram/bot"
@@ -65,12 +66,13 @@ func (s botMessageSender) EditMessageText(
 type Handlers struct {
 	userRepo      iUserRepository
 	wlRequestRepo iWLRequestRepository
+	metastore     metastore.Metastore
 	sender        iMessageSender
 	config        core.Config
 }
 
-func New(userRepo iUserRepository, wlRequestRepo iWLRequestRepository, config core.Config) *Handlers {
-	return &Handlers{userRepo: userRepo, wlRequestRepo: wlRequestRepo, config: config}
+func New(userRepo iUserRepository, wlRequestRepo iWLRequestRepository, metastore metastore.Metastore, config core.Config) *Handlers {
+	return &Handlers{userRepo: userRepo, wlRequestRepo: wlRequestRepo, metastore: metastore, config: config}
 }
 
 func NewWithSender(
