@@ -14,6 +14,7 @@ type Config struct {
 	Postgres PostgresConfig `env-prefix:"POSTGRES_"`
 	Telegram TelegramConfig `env-prefix:"TELEGRAM_"`
 	Server   ServerConfig   `env-prefix:"SERVER_"`
+	Nats     NatsConfig     `env-prefix:"NATS_"`
 }
 
 type LogsConfig struct {
@@ -39,6 +40,13 @@ type TelegramConfig struct {
 
 type ServerConfig struct {
 	MaxRequestsPerUser int `env:"MAX_REQUESTS_PER_USER" env-default:"3" validate:"min=1"`
+}
+
+type NatsConfig struct {
+	URL               string `env:"URL" env-default:"nats://nats:4222" validate:"required"`
+	MetastoreReplicas int    `env:"METASTORE_REPLICAS" env-default:"1" validate:"min=1,max=5"`
+	NKeySeed          string `env:"NKEY_SEED" validate:"required"`
+	NKeyPublic        string `env:"NKEY_PUBLIC" validate:"required"`
 }
 
 func LoadConfig() (Config, error) {
