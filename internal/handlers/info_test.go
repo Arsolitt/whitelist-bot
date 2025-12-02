@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 	"whitelist-bot/internal/core"
@@ -17,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHandlers_Info(t *testing.T) {
+func TestInfo(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -26,7 +25,7 @@ func TestHandlers_Info(t *testing.T) {
 	tests := []struct {
 		name          string
 		currentState  fsm.State
-		setupMock     func(*mockiUserRepository)
+		setupMock     func(*mockiUserGetter)
 		expectedState fsm.State
 		expectedError error
 		validateMsg   func(*testing.T, *bot.SendMessageParams)
@@ -34,7 +33,7 @@ func TestHandlers_Info(t *testing.T) {
 		{
 			name:         "success",
 			currentState: fsm.StateIdle,
-			setupMock: func(m *mockiUserRepository) {
+			setupMock: func(m *mockiUserGetter) {
 				m.EXPECT().
 					UserByTelegramID(ctx, int64(testUser.TelegramID())).
 					Return(testUser, nil).
@@ -51,11 +50,9 @@ func TestHandlers_Info(t *testing.T) {
 			},
 		},
 		{
-			name:         "invalid_state",
-			currentState: fsm.StateWaitingWLNickname,
-			setupMock: func(m *mockiUserRepository) {
-				// No expectations - should not call repository
-			},
+			name:          "invalid_state",
+			currentState:  fsm.StateWaitingWLNickname,
+			setupMock:     func(m *mockiUserGetter) {},
 			expectedState: fsm.StateWaitingWLNickname,
 			expectedError: core.ErrInvalidUserState,
 			validateMsg: func(t *testing.T, msg *bot.SendMessageParams) {
@@ -65,14 +62,14 @@ func TestHandlers_Info(t *testing.T) {
 		{
 			name:         "repository_error",
 			currentState: fsm.StateIdle,
-			setupMock: func(m *mockiUserRepository) {
+			setupMock: func(m *mockiUserGetter) {
 				m.EXPECT().
 					UserByTelegramID(ctx, int64(testUser.TelegramID())).
-					Return(user.User{}, fmt.Errorf("failed to get user: %w", errors.New("db error"))).
+					Return(user.User{}, errors.New("db error")).
 					Once()
 			},
 			expectedState: fsm.StateIdle,
-			expectedError: fmt.Errorf("failed to get user: %w", errors.New("db error")),
+			expectedError: errors.New("failed to get user: db error"),
 			validateMsg: func(t *testing.T, msg *bot.SendMessageParams) {
 				assert.Nil(t, msg)
 			},
@@ -80,7 +77,7 @@ func TestHandlers_Info(t *testing.T) {
 		{
 			name:         "user_not_found",
 			currentState: fsm.StateIdle,
-			setupMock: func(m *mockiUserRepository) {
+			setupMock: func(m *mockiUserGetter) {
 				m.EXPECT().
 					UserByTelegramID(ctx, int64(testUser.TelegramID())).
 					Return(user.User{}, core.ErrUserNotFound).
@@ -98,13 +95,10 @@ func TestHandlers_Info(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mockRepo := newMockiUserRepository(t)
-			tt.setupMock(mockRepo)
+			mockGetter := newMockiUserGetter(t)
+			tt.setupMock(mockGetter)
 
-			h := &Handlers{
-				userRepo: mockRepo,
-				config:   core.Config{},
-			}
+			handler := Info(mockGetter)
 
 			update := &models.Update{
 				Message: &models.Message{
@@ -117,7 +111,7 @@ func TestHandlers_Info(t *testing.T) {
 				},
 			}
 
-			state, msg, err := h.Info(ctx, nil, update, tt.currentState)
+			state, msg, err := handler(ctx, nil, update, tt.currentState)
 
 			assert.Equal(t, tt.expectedState, state)
 

@@ -13,6 +13,11 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
+type iUserGetter interface {
+	UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error)
+	UserByID(ctx context.Context, id domainUser.ID) (domainUser.User, error)
+}
+
 type iUserRepository interface {
 	UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error)
 	UserByID(ctx context.Context, id domainUser.ID) (domainUser.User, error)
