@@ -21,16 +21,17 @@ import (
 func ApproveWLRequest(
 	userRepo iUserRepository,
 	wlRequestRepo iWLRequestRepository,
+	sender iMessageSender,
 ) router.HandlerFunc {
-	return func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+	return func(ctx context.Context, _ *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
 		callbackData, err := parseCallbackData(update.CallbackQuery.Data)
 		if err != nil {
-			sendCallbackError(ctx, b, update.CallbackQuery.ID, "неверный формат callback data")
+			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "неверный формат callback data")
 			return state, nil, fmt.Errorf("failed to unmarshal callback data: %w", err)
 		}
 
 		if !callbackData.IsApprove() {
-			sendCallbackError(ctx, b, update.CallbackQuery.ID, "неверный action")
+			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "неверный action")
 			return state, nil, fmt.Errorf("invalid action: expected approve, got %s", callbackData.Action())
 		}
 
@@ -38,14 +39,14 @@ func ApproveWLRequest(
 
 		dbWLRequest, err := wlRequestRepo.WLRequestByID(ctx, callbackData.ID())
 		if err != nil {
-			sendCallbackError(ctx, b, update.CallbackQuery.ID, "заявка не найдена")
+			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "заявка не найдена")
 			return state, nil, fmt.Errorf("failed to get wl request: %w", err)
 		}
 		slog.DebugContext(ctx, "WL request fetched from database")
 
 		arbiter, err := userRepo.UserByTelegramID(ctx, update.CallbackQuery.From.ID)
 		if err != nil {
-			sendCallbackError(ctx, b, update.CallbackQuery.ID, "не удалось получить арбитра")
+			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "не удалось получить арбитра")
 			return state, nil, fmt.Errorf("failed to get arbiter: %w", err)
 		}
 		ctx = logger.WithLogValue(ctx, logger.ArbiterIDField, arbiter.ID().String())
@@ -53,7 +54,7 @@ func ApproveWLRequest(
 
 		requester, err := userRepo.UserByID(ctx, domainUser.ID(dbWLRequest.RequesterID()))
 		if err != nil {
-			sendCallbackError(ctx, b, update.CallbackQuery.ID, "не удалось получить заявителя")
+			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "не удалось получить заявителя")
 			return state, nil, fmt.Errorf("failed to get requester: %w", err)
 		}
 		ctx = logger.WithLogValue(ctx, logger.RequesterIDField, requester.ID().String())
@@ -61,28 +62,28 @@ func ApproveWLRequest(
 
 		updatedRequest, err := dbWLRequest.Approve(domainWLRequest.ArbiterID(arbiter.ID()))
 		if err != nil {
-			sendCallbackError(ctx, b, update.CallbackQuery.ID, "ошибка при обновлении заявки")
+			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "ошибка при обновлении заявки")
 			return state, nil, fmt.Errorf("failed to build updated request: %w", err)
 		}
 
 		_, err = wlRequestRepo.UpdateWLRequest(ctx, updatedRequest)
 		if err != nil {
-			sendCallbackError(ctx, b, update.CallbackQuery.ID, "ошибка при сохранении изменений")
+			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "ошибка при сохранении изменений")
 			return state, nil, fmt.Errorf("failed to update wl request: %w", err)
 		}
 
-		_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		_, err = sender.EditMessageText(ctx, &bot.EditMessageTextParams{
 			ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
 			MessageID: update.CallbackQuery.Message.Message.ID,
 			Text:      msgs.ApprovedWLRequest(dbWLRequest, arbiter, requester),
 			ParseMode: "HTML",
 		})
 		if err != nil {
-			sendCallbackError(ctx, b, update.CallbackQuery.ID, "ошибка при редактировании сообщения")
+			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "ошибка при редактировании сообщения")
 			return state, nil, fmt.Errorf("failed to edit message: %w", err)
 		}
 
-		_, _ = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		_, _ = sender.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 			CallbackQueryID: update.CallbackQuery.ID,
 			Text:            "✅ Заявка подтверждена",
 			ShowAlert:       false,

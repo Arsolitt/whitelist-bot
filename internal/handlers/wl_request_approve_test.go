@@ -13,6 +13,7 @@ import (
 	domainUser "whitelist-bot/internal/domain/user"
 	domainWLRequest "whitelist-bot/internal/domain/wl_request"
 
+	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -24,6 +25,7 @@ func TestApproveWLRequest_Success(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
+	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 
@@ -103,7 +105,24 @@ func TestApproveWLRequest_Success(t *testing.T) {
 		Return(approvedRequest, nil).
 		Once()
 
-	handler := ApproveWLRequest(mockUserRepo, mockWLRepo)
+	mockSender.EXPECT().
+		EditMessageText(mock.Anything, mock.MatchedBy(func(params *bot.EditMessageTextParams) bool {
+			return params.ChatID == int64(789) &&
+				params.MessageID == 100 &&
+				params.ParseMode == "HTML"
+		})).
+		Return(&models.Message{ID: 100}, nil).
+		Once()
+
+	mockSender.EXPECT().
+		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
+			return params.CallbackQueryID == "callback123" &&
+				params.ShowAlert == false
+		})).
+		Return(true, nil).
+		Once()
+
+	handler := ApproveWLRequest(mockUserRepo, mockWLRepo, mockSender)
 	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.NoError(t, err)
@@ -116,6 +135,7 @@ func TestApproveWLRequest_InvalidCallbackData(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
+	mockSender := newMockiMessageSender(t)
 
 	update := &models.Update{
 		CallbackQuery: &models.CallbackQuery{
@@ -125,7 +145,15 @@ func TestApproveWLRequest_InvalidCallbackData(t *testing.T) {
 		},
 	}
 
-	handler := ApproveWLRequest(mockUserRepo, mockWLRepo)
+	mockSender.EXPECT().
+		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
+			return params.CallbackQueryID == "callback123" &&
+				params.ShowAlert == true
+		})).
+		Return(true, nil).
+		Once()
+
+	handler := ApproveWLRequest(mockUserRepo, mockWLRepo, mockSender)
 	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
@@ -139,6 +167,7 @@ func TestApproveWLRequest_InvalidAction(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
+	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 	requester, err := domainUser.NewBuilder().
@@ -172,7 +201,16 @@ func TestApproveWLRequest_InvalidAction(t *testing.T) {
 			From: models.User{ID: 789012},
 		},
 	}
-	handler := ApproveWLRequest(mockUserRepo, mockWLRepo)
+
+	mockSender.EXPECT().
+		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
+			return params.CallbackQueryID == "callback123" &&
+				params.ShowAlert == true
+		})).
+		Return(true, nil).
+		Once()
+
+	handler := ApproveWLRequest(mockUserRepo, mockWLRepo, mockSender)
 	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
@@ -186,6 +224,7 @@ func TestApproveWLRequest_WLRequestNotFound(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
+	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 	requester, err := domainUser.NewBuilder().
@@ -227,7 +266,15 @@ func TestApproveWLRequest_WLRequestNotFound(t *testing.T) {
 		Return(domainWLRequest.WLRequest{}, expectedErr).
 		Once()
 
-	handler := ApproveWLRequest(mockUserRepo, mockWLRepo)
+	mockSender.EXPECT().
+		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
+			return params.CallbackQueryID == "callback123" &&
+				params.ShowAlert == true
+		})).
+		Return(true, nil).
+		Once()
+
+	handler := ApproveWLRequest(mockUserRepo, mockWLRepo, mockSender)
 	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
@@ -241,6 +288,7 @@ func TestApproveWLRequest_ArbiterNotFound(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
+	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 	requester, err := domainUser.NewBuilder().
@@ -287,7 +335,15 @@ func TestApproveWLRequest_ArbiterNotFound(t *testing.T) {
 		Return(domainUser.User{}, expectedErr).
 		Once()
 
-	handler := ApproveWLRequest(mockUserRepo, mockWLRepo)
+	mockSender.EXPECT().
+		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
+			return params.CallbackQueryID == "callback123" &&
+				params.ShowAlert == true
+		})).
+		Return(true, nil).
+		Once()
+
+	handler := ApproveWLRequest(mockUserRepo, mockWLRepo, mockSender)
 	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
@@ -301,6 +357,7 @@ func TestApproveWLRequest_RequesterNotFound(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
+	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 
@@ -364,11 +421,105 @@ func TestApproveWLRequest_RequesterNotFound(t *testing.T) {
 		Return(domainUser.User{}, expectedErr).
 		Once()
 
-	handler := ApproveWLRequest(mockUserRepo, mockWLRepo)
+	mockSender.EXPECT().
+		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
+			return params.CallbackQueryID == "callback123" &&
+				params.ShowAlert == true
+		})).
+		Return(true, nil).
+		Once()
+
+	handler := ApproveWLRequest(mockUserRepo, mockWLRepo, mockSender)
 	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get requester")
+	assert.Equal(t, fsm.StateIdle, state)
+	assert.Nil(t, msgParams)
+}
+
+func TestApproveWLRequest_ApproveError(t *testing.T) {
+	ctx := context.Background()
+
+	mockUserRepo := newMockiUserRepository(t)
+	mockWLRepo := newMockiWLRequestRepository(t)
+	mockSender := newMockiMessageSender(t)
+
+	now := time.Now()
+
+	requester, err := domainUser.NewBuilder().
+		NewID().
+		TelegramIDFromInt(123456).
+		ChatIDFromInt(1234567890).
+		UsernameFromString("requester").
+		CreatedAt(now).
+		UpdatedAt(now).
+		Build()
+	require.NoError(t, err)
+	requesterID := requester.ID()
+
+	arbiter, err := domainUser.NewBuilder().
+		NewID().
+		TelegramIDFromInt(789012).
+		ChatIDFromInt(1234567890).
+		UsernameFromString("arbiter").
+		CreatedAt(now).
+		UpdatedAt(now).
+		Build()
+	require.NoError(t, err)
+
+	wlRequest, err := domainWLRequest.NewBuilder().
+		NewID().
+		RequesterIDFromUserID(requesterID).
+		NicknameFromString("testnick").
+		StatusFromString(string(domainWLRequest.StatusApproved)).
+		ArbiterIDFromUserID(arbiter.ID()).
+		CreatedAt(now).
+		UpdatedAt(now).
+		Build()
+	require.NoError(t, err)
+	wlRequestID := wlRequest.ID()
+
+	callbackData := callbacks.NewWLRequestCallbackData(wlRequestID, core.ActionWLRequestApprove)
+	callbackDataJSON, err := json.Marshal(callbackData)
+	require.NoError(t, err)
+
+	update := &models.Update{
+		CallbackQuery: &models.CallbackQuery{
+			ID:   "callback123",
+			Data: string(callbackDataJSON),
+			From: models.User{ID: int64(arbiter.TelegramID())},
+		},
+	}
+
+	mockWLRepo.EXPECT().
+		WLRequestByID(mock.Anything, wlRequestID).
+		Return(wlRequest, nil).
+		Once()
+
+	mockUserRepo.EXPECT().
+		UserByTelegramID(mock.Anything, int64(arbiter.TelegramID())).
+		Return(arbiter, nil).
+		Once()
+
+	mockUserRepo.EXPECT().
+		UserByID(mock.Anything, requesterID).
+		Return(requester, nil).
+		Once()
+
+	mockSender.EXPECT().
+		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
+			return params.CallbackQueryID == "callback123" &&
+				params.ShowAlert == true
+		})).
+		Return(true, nil).
+		Once()
+
+	handler := ApproveWLRequest(mockUserRepo, mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to build updated request")
 	assert.Equal(t, fsm.StateIdle, state)
 	assert.Nil(t, msgParams)
 }
@@ -378,6 +529,7 @@ func TestApproveWLRequest_UpdateWLRequestError(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
+	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 
@@ -446,7 +598,15 @@ func TestApproveWLRequest_UpdateWLRequestError(t *testing.T) {
 		Return(domainWLRequest.WLRequest{}, expectedErr).
 		Once()
 
-	handler := ApproveWLRequest(mockUserRepo, mockWLRepo)
+	mockSender.EXPECT().
+		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
+			return params.CallbackQueryID == "callback123" &&
+				params.ShowAlert == true
+		})).
+		Return(true, nil).
+		Once()
+
+	handler := ApproveWLRequest(mockUserRepo, mockWLRepo, mockSender)
 	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
@@ -460,6 +620,7 @@ func TestApproveWLRequest_EditMessageError(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
+	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 
@@ -536,7 +697,21 @@ func TestApproveWLRequest_EditMessageError(t *testing.T) {
 		Return(approvedRequest, nil).
 		Once()
 
-	handler := ApproveWLRequest(mockUserRepo, mockWLRepo)
+	expectedErr := errors.New("telegram API error")
+	mockSender.EXPECT().
+		EditMessageText(mock.Anything, mock.AnythingOfType("*bot.EditMessageTextParams")).
+		Return(nil, expectedErr).
+		Once()
+
+	mockSender.EXPECT().
+		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
+			return params.CallbackQueryID == "callback123" &&
+				params.ShowAlert == true
+		})).
+		Return(true, nil).
+		Once()
+
+	handler := ApproveWLRequest(mockUserRepo, mockWLRepo, mockSender)
 	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
