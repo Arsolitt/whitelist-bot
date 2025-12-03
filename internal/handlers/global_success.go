@@ -26,6 +26,8 @@ func GlobalSuccessHandler(
 				{
 					{Text: core.CommandInfo},
 					{Text: core.CommandNewWLRequest},
+					// {Text: core.CommandAnketaStart},
+					// {Text: core.CommandAnketaInfo},
 				},
 			}
 			if slices.Contains(cfg.Telegram.AdminIDs, update.Message.From.ID) {
