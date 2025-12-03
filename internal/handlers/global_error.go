@@ -22,29 +22,31 @@ var errorStatusMap = map[error]string{
 	core.ErrInvalidUserState: ErrInvalidUserStateMessage,
 }
 
-func (h *Handlers) GlobalErrorHandler(ctx context.Context, b *bot.Bot, update *models.Update, err error) {
-	slog.ErrorContext(ctx, "Failed to handle update", logger.ErrorField, err.Error())
-	switch {
-	case h.getCustomErrorMessage(err) != "" && update.Message != nil:
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   h.getCustomErrorMessage(err),
-		})
-	case update.Message != nil:
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   ErrInternalErrorMessage,
-		})
-	default:
-		return
+func GlobalErrorHandler() func(ctx context.Context, b *bot.Bot, update *models.Update, err error) {
+	getCustomErrorMessage := func(target error) string {
+		for err, message := range errorStatusMap {
+			if errors.Is(target, err) {
+				return message
+			}
+		}
+		return ""
 	}
-}
 
-func (h *Handlers) getCustomErrorMessage(target error) string {
-	for err, message := range errorStatusMap {
-		if errors.Is(target, err) {
-			return message
+	return func(ctx context.Context, b *bot.Bot, update *models.Update, err error) {
+		slog.ErrorContext(ctx, "Failed to handle update", logger.ErrorField, err.Error())
+		switch {
+		case getCustomErrorMessage(err) != "" && update.Message != nil:
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   getCustomErrorMessage(err),
+			})
+		case update.Message != nil:
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   ErrInternalErrorMessage,
+			})
+		default:
+			return
 		}
 	}
-	return ""
 }
