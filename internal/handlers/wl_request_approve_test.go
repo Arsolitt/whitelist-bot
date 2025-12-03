@@ -32,6 +32,7 @@ func TestHandlers_ApproveWLRequest_Success(t *testing.T) {
 	requester, err := domainUser.NewBuilder().
 		NewID().
 		TelegramIDFromInt(123456).
+		ChatIDFromInt(1234567890).
 		UsernameFromString("requester").
 		CreatedAt(now).
 		UpdatedAt(now).
@@ -42,6 +43,7 @@ func TestHandlers_ApproveWLRequest_Success(t *testing.T) {
 	arbiter, err := domainUser.NewBuilder().
 		NewID().
 		TelegramIDFromInt(789012).
+		ChatIDFromInt(1234567890).
 		UsernameFromString("arbiter").
 		CreatedAt(now).
 		UpdatedAt(now).
@@ -173,6 +175,7 @@ func TestHandlers_ApproveWLRequest_InvalidAction(t *testing.T) {
 	requester, err := domainUser.NewBuilder().
 		NewID().
 		TelegramIDFromInt(123456).
+		ChatIDFromInt(1234567890).
 		UsernameFromString("requester").
 		CreatedAt(now).
 		UpdatedAt(now).
@@ -230,6 +233,7 @@ func TestHandlers_ApproveWLRequest_WLRequestNotFound(t *testing.T) {
 	requester, err := domainUser.NewBuilder().
 		NewID().
 		TelegramIDFromInt(123456).
+		ChatIDFromInt(1234567890).
 		UsernameFromString("requester").
 		CreatedAt(now).
 		UpdatedAt(now).
@@ -294,6 +298,7 @@ func TestHandlers_ApproveWLRequest_ArbiterNotFound(t *testing.T) {
 	requester, err := domainUser.NewBuilder().
 		NewID().
 		TelegramIDFromInt(123456).
+		ChatIDFromInt(1234567890).
 		UsernameFromString("requester").
 		CreatedAt(now).
 		UpdatedAt(now).
@@ -364,6 +369,7 @@ func TestHandlers_ApproveWLRequest_RequesterNotFound(t *testing.T) {
 	requester, err := domainUser.NewBuilder().
 		NewID().
 		TelegramIDFromInt(123456).
+		ChatIDFromInt(1234567890).
 		UsernameFromString("requester").
 		CreatedAt(now).
 		UpdatedAt(now).
@@ -374,6 +380,7 @@ func TestHandlers_ApproveWLRequest_RequesterNotFound(t *testing.T) {
 	arbiter, err := domainUser.NewBuilder().
 		NewID().
 		TelegramIDFromInt(789012).
+		ChatIDFromInt(1234567890).
 		UsernameFromString("arbiter").
 		CreatedAt(now).
 		UpdatedAt(now).
@@ -449,6 +456,7 @@ func TestHandlers_ApproveWLRequest_UpdateWLRequestError(t *testing.T) {
 	requester, err := domainUser.NewBuilder().
 		NewID().
 		TelegramIDFromInt(123456).
+		ChatIDFromInt(1234567890).
 		UsernameFromString("requester").
 		CreatedAt(now).
 		UpdatedAt(now).
@@ -459,6 +467,7 @@ func TestHandlers_ApproveWLRequest_UpdateWLRequestError(t *testing.T) {
 	arbiter, err := domainUser.NewBuilder().
 		NewID().
 		TelegramIDFromInt(789012).
+		ChatIDFromInt(1234567890).
 		UsernameFromString("arbiter").
 		CreatedAt(now).
 		UpdatedAt(now).
@@ -539,6 +548,7 @@ func TestHandlers_ApproveWLRequest_EditMessageError(t *testing.T) {
 	requester, err := domainUser.NewBuilder().
 		NewID().
 		TelegramIDFromInt(123456).
+		ChatIDFromInt(1234567890).
 		UsernameFromString("requester").
 		CreatedAt(now).
 		UpdatedAt(now).
@@ -549,6 +559,7 @@ func TestHandlers_ApproveWLRequest_EditMessageError(t *testing.T) {
 	arbiter, err := domainUser.NewBuilder().
 		NewID().
 		TelegramIDFromInt(789012).
+		ChatIDFromInt(1234567890).
 		UsernameFromString("arbiter").
 		CreatedAt(now).
 		UpdatedAt(now).

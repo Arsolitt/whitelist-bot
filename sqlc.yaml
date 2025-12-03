@@ -66,6 +66,11 @@ overrides:
         go_type:
           import: "whitelist-bot/internal/domain/user"
           type: "TelegramID"
+      - column: "users.chat_id"
+        engine: "postgresql"
+        go_type:
+          import: "whitelist-bot/internal/domain/user"
+          type: "ChatID"
 version: "2"
 sql:
   - name: "users-postgres"

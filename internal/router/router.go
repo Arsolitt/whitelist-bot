@@ -26,6 +26,7 @@ type iUserRepository interface {
 	CreateUser(
 		ctx context.Context,
 		telegramId domainUser.TelegramID,
+		chatID domainUser.ChatID,
 		firstName domainUser.FirstName,
 		lastName domainUser.LastName,
 		username domainUser.Username,
@@ -94,7 +95,13 @@ func (r *TelegramRouter) WrapHandler(handler HandlerFunc) bot.HandlerFunc {
 		ctx = logger.WithLogValue(ctx, logger.CorrelationIDField, utils.NewUniqueID().String())
 		slog.InfoContext(ctx, fmt.Sprintf("Handling update: %d", update.ID))
 
-		user, err := r.checkUser(ctx, userID, firstName, lastName, userName)
+		user, err := r.checkUser(ctx,
+			domainUser.TelegramID(userID),
+			domainUser.ChatID(chatID),
+			domainUser.FirstName(firstName),
+			domainUser.LastName(lastName),
+			domainUser.Username(userName),
+		)
 		if err != nil {
 			r.errorHandler(ctx, b, update, fmt.Errorf("failed to check user: %w", err))
 			return
@@ -137,23 +144,25 @@ func (r *TelegramRouter) WrapHandler(handler HandlerFunc) bot.HandlerFunc {
 
 func (r *TelegramRouter) checkUser(
 	ctx context.Context,
-	id int64,
-	firstName string,
-	lastName string,
-	username string,
+	id domainUser.TelegramID,
+	chatID domainUser.ChatID,
+	firstName domainUser.FirstName,
+	lastName domainUser.LastName,
+	username domainUser.Username,
 ) (domainUser.User, error) {
-	user, repoErr := r.userRepository.UserByTelegramID(ctx, id)
 	// TODO: add cache for user
+	user, repoErr := r.userRepository.UserByTelegramID(ctx, int64(id))
 
 	if errors.Is(repoErr, core.ErrUserNotFound) {
 		slog.WarnContext(ctx, "User not found, creating new user")
 
 		newDBUser, err := r.userRepository.CreateUser(
 			ctx,
-			domainUser.TelegramID(id),
-			domainUser.FirstName(firstName),
-			domainUser.LastName(lastName),
-			domainUser.Username(username),
+			id,
+			chatID,
+			firstName,
+			lastName,
+			username,
 		)
 		if err != nil {
 			return domainUser.User{}, fmt.Errorf("failed to create new user in storage: %w", err)

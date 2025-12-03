@@ -43,6 +43,7 @@ func (r *UserRepository) UserByTelegramID(ctx context.Context, telegramID int64)
 	user, err := domainUser.NewBuilder().
 		ID(dbUser.ID).
 		TelegramID(dbUser.TelegramID).
+		ChatID(dbUser.ChatID).
 		FirstName(dbUser.FirstName).
 		LastName(dbUser.LastName).
 		Username(dbUser.Username).
@@ -59,6 +60,7 @@ func (r *UserRepository) UserByTelegramID(ctx context.Context, telegramID int64)
 func (r *UserRepository) CreateUser(
 	ctx context.Context,
 	telegramId domainUser.TelegramID,
+	chatID domainUser.ChatID,
 	firstName domainUser.FirstName,
 	lastName domainUser.LastName,
 	username domainUser.Username,
@@ -70,6 +72,7 @@ func (r *UserRepository) CreateUser(
 	newUser, err := domainUser.NewBuilder().
 		NewID().
 		TelegramID(telegramId).
+		ChatID(chatID).
 		FirstName(firstName).
 		LastName(lastName).
 		Username(username).
@@ -83,6 +86,7 @@ func (r *UserRepository) CreateUser(
 	_, err = q.CreateUser(ctx, CreateUserParams{
 		ID:         newUser.ID(),
 		TelegramID: newUser.TelegramID(),
+		ChatID:     newUser.ChatID(),
 		FirstName:  newUser.FirstName(),
 		LastName:   newUser.LastName(),
 		Username:   newUser.Username(),
@@ -103,6 +107,7 @@ func (r *UserRepository) UpdateUser(ctx context.Context, user domainUser.User) (
 	_, err := q.UpdateUser(ctx, UpdateUserParams{
 		ID:         user.ID(),
 		TelegramID: user.TelegramID(),
+		ChatID:     user.ChatID(),
 		FirstName:  user.FirstName(),
 		LastName:   user.LastName(),
 		Username:   user.Username(),
@@ -126,6 +131,7 @@ func (r *UserRepository) UserByID(ctx context.Context, id domainUser.ID) (domain
 	user, err := domainUser.NewBuilder().
 		ID(dbUser.ID).
 		TelegramID(dbUser.TelegramID).
+		ChatID(dbUser.ChatID).
 		FirstName(dbUser.FirstName).
 		LastName(dbUser.LastName).
 		Username(dbUser.Username).

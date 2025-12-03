@@ -9,6 +9,7 @@ import (
 type (
 	ID         uuid.UUID
 	TelegramID int64
+	ChatID     int64
 	FirstName  string
 	LastName   string
 	Username   string
@@ -33,4 +34,8 @@ func (u ID) String() string {
 
 func (u ID) IsZero() bool {
 	return utils.UUIDIsZero(u)
+}
+
+func (u ChatID) IsZero() bool {
+	return u == 0
 }

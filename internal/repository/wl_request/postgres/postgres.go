@@ -124,6 +124,7 @@ func (r *WLRequestRepository) PendingWLRequestsWithRequester(ctx context.Context
 			ID(dbRow.User.ID).
 			TelegramID(dbRow.User.TelegramID).
 			FirstName(dbRow.User.FirstName).
+			ChatID(dbRow.User.ChatID).
 			LastName(dbRow.User.LastName).
 			Username(dbRow.User.Username).
 			CreatedAt(dbRow.User.CreatedAt).

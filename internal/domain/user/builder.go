@@ -13,6 +13,7 @@ import (
 var (
 	ErrIDRequired         = errors.New("ID required")
 	ErrTelegramIDRequired = errors.New("telegram ID required")
+	ErrChatIDRequired     = errors.New("chat ID required")
 	ErrUsernameRequired   = errors.New("username required")
 	ErrCreatedAtRequired  = errors.New("createdAt required")
 	ErrUpdatedAtRequired  = errors.New("updatedAt required")
@@ -21,6 +22,7 @@ var (
 type Builder struct {
 	id         ID
 	telegramID TelegramID
+	chatID     ChatID
 	firstName  FirstName
 	lastName   LastName
 	username   Username
@@ -70,6 +72,19 @@ func (b Builder) TelegramID(telegramID TelegramID) Builder {
 
 func (b Builder) TelegramIDFromInt(telegramID int64) Builder {
 	return b.TelegramID(TelegramID(telegramID))
+}
+
+func (b Builder) ChatID(chatID ChatID) Builder {
+	if chatID.IsZero() {
+		b.errors = append(b.errors, ErrChatIDRequired)
+		return b
+	}
+	b.chatID = chatID
+	return b
+}
+
+func (b Builder) ChatIDFromInt(chatID int64) Builder {
+	return b.ChatID(ChatID(chatID))
 }
 
 func (b Builder) FirstName(firstName FirstName) Builder {
@@ -145,6 +160,9 @@ func (b Builder) Build() (User, error) {
 	if b.updatedAt.IsZero() {
 		b.errors = append(b.errors, ErrUpdatedAtRequired)
 	}
+	if b.chatID.IsZero() {
+		b.errors = append(b.errors, ErrChatIDRequired)
+	}
 
 	if len(b.errors) > 0 {
 		return User{}, errors.Join(b.errors...)
@@ -153,6 +171,7 @@ func (b Builder) Build() (User, error) {
 	return User{
 		id:         b.id,
 		telegramID: b.telegramID,
+		chatID:     b.chatID,
 		firstName:  b.firstName,
 		lastName:   b.lastName,
 		username:   b.username,

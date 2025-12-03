@@ -133,6 +133,7 @@ func createTestUser(t *testing.T) user.User {
 	u, err := user.NewBuilder().
 		IDFromUUID(uuid.New()).
 		TelegramIDFromInt(12345).
+		ChatIDFromInt(1234567890).
 		FirstNameFromString("Test").
 		LastNameFromString("User").
 		UsernameFromString("testuser").

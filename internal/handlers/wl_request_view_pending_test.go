@@ -31,6 +31,7 @@ func TestHandlers_ViewPendingWLRequests_Success(t *testing.T) {
 	user, err := domainUser.NewBuilder().
 		NewID().
 		TelegramIDFromInt(123456).
+		ChatIDFromInt(1234567890).
 		UsernameFromString("testuser").
 		CreatedAt(now).
 		UpdatedAt(now).

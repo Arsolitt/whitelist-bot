@@ -14,6 +14,7 @@ import (
 func TestBuilder_Build_Success(t *testing.T) {
 	id := ID(utils.NewUniqueID())
 	telegramID := TelegramID(1234567890)
+	chatID := ChatID(1234567890)
 	firstName := FirstName("John")
 	lastName := LastName("Doe")
 	username := Username("john.doe")
@@ -22,6 +23,7 @@ func TestBuilder_Build_Success(t *testing.T) {
 	user, err := NewBuilder().
 		ID(id).
 		TelegramID(telegramID).
+		ChatID(chatID).
 		FirstName(firstName).
 		LastName(lastName).
 		Username(username).
@@ -58,6 +60,7 @@ func TestBuilder_Build_Success(t *testing.T) {
 func TestBuilder_Build_ValidationError(t *testing.T) {
 	id := ID(utils.NewUniqueID())
 	telegramID := TelegramID(1234567890)
+	chatID := ChatID(1234567890)
 	firstName := FirstName("John")
 	lastName := LastName("Doe")
 	username := Username("john.doe")
@@ -73,6 +76,7 @@ func TestBuilder_Build_ValidationError(t *testing.T) {
 				return NewBuilder().
 					ID(ID(uuid.Nil)).
 					TelegramID(telegramID).
+					ChatID(chatID).
 					FirstName(firstName).
 					LastName(lastName).
 					Username(username).
@@ -87,6 +91,7 @@ func TestBuilder_Build_ValidationError(t *testing.T) {
 				return NewBuilder().
 					IDFromString("invalid").
 					TelegramID(telegramID).
+					ChatID(chatID).
 					FirstName(firstName).
 					LastName(lastName).
 					Username(username).
@@ -101,6 +106,7 @@ func TestBuilder_Build_ValidationError(t *testing.T) {
 				return NewBuilder().
 					ID(id).
 					TelegramID(TelegramID(-1)).
+					ChatID(chatID).
 					FirstName(firstName).
 					LastName(lastName).
 					Username(username).
@@ -115,6 +121,7 @@ func TestBuilder_Build_ValidationError(t *testing.T) {
 				return NewBuilder().
 					ID(id).
 					TelegramID(TelegramID(0)).
+					ChatID(chatID).
 					FirstName(firstName).
 					LastName(lastName).
 					Username(username).
@@ -124,11 +131,27 @@ func TestBuilder_Build_ValidationError(t *testing.T) {
 			expectedError: ErrTelegramIDRequired,
 		},
 		{
+			name: "Chat ID zero",
+			builder: func() Builder {
+				return NewBuilder().
+					ID(id).
+					TelegramID(telegramID).
+					ChatID(ChatID(0)).
+					FirstName(firstName).
+					LastName(lastName).
+					Username(username).
+					CreatedAt(now).
+					UpdatedAt(now)
+			},
+			expectedError: ErrChatIDRequired,
+		},
+		{
 			name: "Username required",
 			builder: func() Builder {
 				return NewBuilder().
 					ID(id).
 					TelegramID(telegramID).
+					ChatID(chatID).
 					FirstName(firstName).
 					LastName(lastName).
 					Username(Username("")).
@@ -143,6 +166,7 @@ func TestBuilder_Build_ValidationError(t *testing.T) {
 				return NewBuilder().
 					ID(id).
 					TelegramID(telegramID).
+					ChatID(chatID).
 					FirstName(firstName).
 					LastName(lastName).
 					Username(username).
@@ -157,6 +181,7 @@ func TestBuilder_Build_ValidationError(t *testing.T) {
 				return NewBuilder().
 					ID(id).
 					TelegramID(telegramID).
+					ChatID(chatID).
 					FirstName(firstName).
 					LastName(lastName).
 					Username(username).
@@ -170,6 +195,7 @@ func TestBuilder_Build_ValidationError(t *testing.T) {
 				return NewBuilder().
 					ID(id).
 					TelegramID(telegramID).
+					ChatID(chatID).
 					FirstName(firstName).
 					LastName(lastName).
 					Username(username).
@@ -184,6 +210,7 @@ func TestBuilder_Build_ValidationError(t *testing.T) {
 				return NewBuilder().
 					ID(id).
 					TelegramID(telegramID).
+					ChatID(chatID).
 					FirstName(firstName).
 					LastName(lastName).
 					Username(username).

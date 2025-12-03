@@ -7,6 +7,7 @@ import (
 type User struct {
 	id         ID
 	telegramID TelegramID
+	chatID     ChatID
 	firstName  FirstName
 	lastName   LastName
 	username   Username
@@ -20,6 +21,10 @@ func (u User) ID() ID {
 
 func (u User) TelegramID() TelegramID {
 	return u.telegramID
+}
+
+func (u User) ChatID() ChatID {
+	return u.chatID
 }
 
 func (u User) FirstName() FirstName {
