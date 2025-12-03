@@ -31,9 +31,7 @@ func Info(
 		}
 
 		msgParams := &bot.SendMessageParams{
-			ChatID:    update.Message.Chat.ID,
-			Text:      msgs.UserInfo(user),
-			ParseMode: "HTML",
+			Text: msgs.UserInfo(user),
 		}
 		return fsm.StateIdle, msgParams, nil
 	}
