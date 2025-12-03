@@ -65,9 +65,7 @@ func TestHandlers_ViewPendingWLRequests_Success(t *testing.T) {
 
 	mockSender.EXPECT().
 		SendMessage(ctx, mock.MatchedBy(func(params *bot.SendMessageParams) bool {
-			return params.ChatID == int64(789) &&
-				params.ParseMode == "HTML" &&
-				params.ReplyMarkup != nil
+			return params.ReplyMarkup != nil
 		})).
 		Return(&models.Message{ID: 1}, nil).
 		Once()
@@ -184,8 +182,6 @@ func TestHandlers_ViewPendingWLRequests_NoRequests(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, fsm.StateIdle, state)
 	require.NotNil(t, msgParams)
-	assert.Equal(t, int64(789), msgParams.ChatID)
-	assert.Equal(t, models.ParseMode("HTML"), msgParams.ParseMode)
 	assert.NotEmpty(t, msgParams.Text)
 }
 

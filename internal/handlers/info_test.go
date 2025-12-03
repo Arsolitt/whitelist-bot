@@ -43,8 +43,6 @@ func TestInfo(t *testing.T) {
 			expectedError: nil,
 			validateMsg: func(t *testing.T, msg *bot.SendMessageParams) {
 				require.NotNil(t, msg)
-				assert.Equal(t, int64(123), msg.ChatID)
-				assert.Equal(t, models.ParseModeHTML, msg.ParseMode)
 				assert.Contains(t, msg.Text, "Информация о пользователе")
 				assert.Contains(t, msg.Text, "testuser")
 			},

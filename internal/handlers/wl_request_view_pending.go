@@ -26,18 +26,14 @@ func (h Handlers) ViewPendingWLRequests(
 
 	if len(messages) == 0 {
 		msgParams := &bot.SendMessageParams{
-			ChatID:    update.Message.Chat.ID,
-			Text:      msgs.NoPendingWLRequests(),
-			ParseMode: "HTML",
+			Text: msgs.NoPendingWLRequests(),
 		}
 		return state, msgParams, nil
 	}
 
 	for _, msg := range messages {
 		_, err = h.botSendMessage(ctx, b, &bot.SendMessageParams{
-			ChatID:      update.Message.Chat.ID,
 			Text:        msg.Text,
-			ParseMode:   "HTML",
 			ReplyMarkup: msg.ReplyMarkup,
 		})
 		if err != nil {
