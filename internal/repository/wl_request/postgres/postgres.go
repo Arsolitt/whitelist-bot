@@ -100,7 +100,10 @@ func (r *WLRequestRepository) PendingWLRequests(ctx context.Context, limit int64
 	return pendingWLRequests, nil
 }
 
-func (r *WLRequestRepository) PendingWLRequestsWithRequester(ctx context.Context, limit int64) ([]repository.PendingWLRequestWithRequester, error) {
+func (r *WLRequestRepository) PendingWLRequestsWithRequester(
+	ctx context.Context,
+	limit int64,
+) ([]repository.PendingWLRequestWithRequester, error) {
 	q := New(r.db)
 
 	dbRows, err := q.PendingWLRequestsWithRequester(ctx, limit)

@@ -9,7 +9,7 @@ const (
 	StateIdle              State = "idle"
 	StateWaitingWLNickname State = "waiting_wl_nickname"
 	// StateAnketaName        State = "anketa_name"
-	// StateAnketaAge         State = "anketa_age"
+	// StateAnketaAge         State = "anketa_age".
 )
 
 type IFSM interface {

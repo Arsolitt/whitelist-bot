@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -28,7 +29,7 @@ func (m *Metastore) Get(ctx context.Context, uniqueID string, key string) ([]byt
 
 	data, ok := m.store[m.dataKey(uniqueID, key)]
 	if !ok {
-		return nil, fmt.Errorf("data not found")
+		return nil, errors.New("data not found")
 	}
 
 	return data, nil

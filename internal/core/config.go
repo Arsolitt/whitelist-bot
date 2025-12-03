@@ -45,10 +45,10 @@ type ServerConfig struct {
 }
 
 type NatsConfig struct {
-	URL               string `env:"URL" env-default:"nats://nats:4222" validate:"required"`
-	MetastoreReplicas int    `env:"METASTORE_REPLICAS" env-default:"1" validate:"min=1,max=5"`
-	NKeySeed          string `env:"NKEY_SEED" validate:"required"`
-	NKeyPublic        string `env:"NKEY_PUBLIC" validate:"required"`
+	URL               string `env:"URL"                env-default:"nats://nats:4222" validate:"required"`
+	MetastoreReplicas int    `env:"METASTORE_REPLICAS" env-default:"1"                validate:"min=1,max=5"`
+	NKeySeed          string `env:"NKEY_SEED"                                         validate:"required"`
+	NKeyPublic        string `env:"NKEY_PUBLIC"                                       validate:"required"`
 }
 
 func LoadConfig() (Config, error) {

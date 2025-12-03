@@ -123,7 +123,10 @@ func main() {
 		),
 		handlers.ViewPendingWLRequests(wlRequestRepo, r.Bot()),
 	)
-	r.RegisterHandlerMatchFunc(r.StateMatchFunc(fsm.StateWaitingWLNickname), handlers.SubmitWLRequestNickname(userRepo, wlRequestRepo))
+	r.RegisterHandlerMatchFunc(
+		r.StateMatchFunc(fsm.StateWaitingWLNickname),
+		handlers.SubmitWLRequestNickname(userRepo, wlRequestRepo),
+	)
 
 	r.RegisterHandlerMatchFunc(
 		matcher.And(

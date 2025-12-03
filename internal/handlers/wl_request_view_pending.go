@@ -37,7 +37,6 @@ func ViewPendingWLRequests(
 
 		messages := make([]pendingWLRequestMessage, 0, len(wlRequests))
 		for _, wlRequest := range wlRequests {
-
 			keyboard := &models.InlineKeyboardMarkup{
 				InlineKeyboard: [][]models.InlineKeyboardButton{
 					{

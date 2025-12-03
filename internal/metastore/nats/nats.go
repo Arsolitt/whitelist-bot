@@ -41,7 +41,6 @@ func New(ctx context.Context, conn *nats.Conn, bucketName string, replicas int) 
 }
 
 func (m *Metastore) Get(ctx context.Context, uniqueID string, key string) ([]byte, error) {
-
 	data, err := m.bucket.Get(ctx, m.dataKey(uniqueID, key))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get data: %w", err)

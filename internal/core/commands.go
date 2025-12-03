@@ -9,5 +9,5 @@ const (
 	ActionWLRequestApprove       = "wlapp"
 	ActionWLRequestDecline       = "wldec"
 	// CommandAnketaStart           = "Начать анкету"
-	// CommandAnketaInfo            = "Посмотреть анкету"
+	// CommandAnketaInfo            = "Посмотреть анкету".
 )

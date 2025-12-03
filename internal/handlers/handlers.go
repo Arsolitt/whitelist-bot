@@ -48,6 +48,11 @@ type Handlers struct {
 	config        core.Config
 }
 
-func New(userRepo iUserRepository, wlRequestRepo iWLRequestRepository, metastore metastore.Metastore, config core.Config) *Handlers {
+func New(
+	userRepo iUserRepository,
+	wlRequestRepo iWLRequestRepository,
+	metastore metastore.Metastore,
+	config core.Config,
+) *Handlers {
 	return &Handlers{userRepo: userRepo, wlRequestRepo: wlRequestRepo, metastore: metastore, config: config}
 }
