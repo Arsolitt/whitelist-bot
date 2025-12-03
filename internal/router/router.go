@@ -34,12 +34,12 @@ type iUserRepository interface {
 }
 
 type TelegramRouter struct {
-	bot            *bot.Bot
 	fsm            fsm.IFSM
 	userRepository iUserRepository
 	locker         locker.ILocker
 	errorHandler   ErrorHandlerFunc
 	successHandler SuccessHandlerFunc
+	bot            *bot.Bot
 }
 
 func NewTelegramRouter(
@@ -48,18 +48,32 @@ func NewTelegramRouter(
 	repository iUserRepository,
 	errorHandler ErrorHandlerFunc,
 	successHandler SuccessHandlerFunc,
-) *TelegramRouter {
-	return &TelegramRouter{
+	token core.TelegramToken,
+	defaultHandler HandlerFunc,
+	errorsHandler bot.ErrorsHandler,
+) (*TelegramRouter, error) {
+	r := &TelegramRouter{
 		fsm:            fsm,
 		locker:         locker,
 		userRepository: repository,
 		errorHandler:   errorHandler,
 		successHandler: successHandler,
 	}
+	opts := []bot.Option{
+		bot.WithDefaultHandler(r.WrapHandler(defaultHandler)),
+		bot.WithErrorsHandler(errorsHandler),
+	}
+	b, err := bot.New(string(token), opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup bot: %w", err)
+	}
+	r.bot = b
+	return r, nil
 }
 
-func (r *TelegramRouter) SetBot(b *bot.Bot) {
-	r.bot = b
+func (r *TelegramRouter) Start(ctx context.Context) error {
+	r.bot.Start(ctx)
+	return nil
 }
 
 func (r *TelegramRouter) WrapHandler(handler HandlerFunc) bot.HandlerFunc {

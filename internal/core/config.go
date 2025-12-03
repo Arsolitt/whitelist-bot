@@ -8,6 +8,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type TelegramToken string
+
 type Config struct {
 	Logs     LogsConfig     `env-prefix:"LOGS_"`
 	Sqlite   SqliteConfig   `env-prefix:"SQLITE_"`
@@ -33,9 +35,9 @@ type PostgresConfig struct {
 }
 
 type TelegramConfig struct {
-	Token    string  `env:"TOKEN"     validate:"required"`
-	AdminIDs []int64 `env:"ADMIN_IDS" validate:"required,min=1"`
-	Debug    bool    `env:"DEBUG"                               env-default:"false"`
+	Token    TelegramToken `env:"TOKEN"     validate:"required"`
+	AdminIDs []int64       `env:"ADMIN_IDS" validate:"required,min=1"`
+	Debug    bool          `env:"DEBUG"                               env-default:"false"`
 }
 
 type ServerConfig struct {
