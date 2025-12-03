@@ -14,6 +14,13 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
+const PENDING_WL_REQUESTS_LIMIT = 5
+
+type pendingWLRequestMessage struct {
+	Text        string
+	ReplyMarkup *models.InlineKeyboardMarkup
+}
+
 func ViewPendingWLRequests(
 	wlRequestRepo iWLRequestRepository,
 	sender iMessageSender,
