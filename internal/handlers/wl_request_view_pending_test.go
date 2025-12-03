@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 	"time"
-	"whitelist-bot/internal/core"
 	"whitelist-bot/internal/fsm"
 
 	domainUser "whitelist-bot/internal/domain/user"
@@ -19,14 +18,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHandlers_ViewPendingWLRequests_Success(t *testing.T) {
+func TestViewPendingWLRequests_Success(t *testing.T) {
 	ctx := context.Background()
 
-	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
 	mockSender := newMockiMessageSender(t)
 
-	// Test data
 	now := time.Now()
 	user, err := domainUser.NewBuilder().
 		NewID().
@@ -55,7 +52,6 @@ func TestHandlers_ViewPendingWLRequests_Success(t *testing.T) {
 		},
 	}
 
-	// Setup expectations
 	mockWLRepo.EXPECT().
 		PendingWLRequestsWithRequester(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
 		Return([]wlRequestRepo.PendingWLRequestWithRequester{
@@ -70,26 +66,20 @@ func TestHandlers_ViewPendingWLRequests_Success(t *testing.T) {
 		Return(&models.Message{ID: 1}, nil).
 		Once()
 
-	// Create handler
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
+	handler := ViewPendingWLRequests(mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
-	// Execute
-	state, msgParams, err := h.ViewPendingWLRequests(ctx, nil, update, fsm.StateIdle)
-
-	// Assert
 	require.NoError(t, err)
 	assert.Equal(t, fsm.StateIdle, state)
 	assert.Nil(t, msgParams)
 }
 
-func TestHandlers_ViewPendingWLRequests_MultipleRequests(t *testing.T) {
+func TestViewPendingWLRequests_MultipleRequests(t *testing.T) {
 	ctx := context.Background()
 
-	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
 	mockSender := newMockiMessageSender(t)
 
-	// Create multiple users and requests
 	now := time.Now()
 	user1, _ := domainUser.NewBuilder().
 		NewID().
@@ -133,7 +123,6 @@ func TestHandlers_ViewPendingWLRequests_MultipleRequests(t *testing.T) {
 		},
 	}
 
-	// Setup expectations
 	mockWLRepo.EXPECT().
 		PendingWLRequestsWithRequester(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
 		Return([]wlRequestRepo.PendingWLRequestWithRequester{
@@ -147,19 +136,17 @@ func TestHandlers_ViewPendingWLRequests_MultipleRequests(t *testing.T) {
 		Return(&models.Message{ID: 1}, nil).
 		Twice()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.ViewPendingWLRequests(ctx, nil, update, fsm.StateIdle)
+	handler := ViewPendingWLRequests(mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.NoError(t, err)
 	assert.Equal(t, fsm.StateIdle, state)
 	assert.Nil(t, msgParams)
 }
 
-func TestHandlers_ViewPendingWLRequests_NoRequests(t *testing.T) {
+func TestViewPendingWLRequests_NoRequests(t *testing.T) {
 	ctx := context.Background()
 
-	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
 	mockSender := newMockiMessageSender(t)
 
@@ -169,15 +156,13 @@ func TestHandlers_ViewPendingWLRequests_NoRequests(t *testing.T) {
 		},
 	}
 
-	// Empty list of requests
 	mockWLRepo.EXPECT().
 		PendingWLRequestsWithRequester(ctx, int64(PENDING_WL_REQUESTS_LIMIT)).
 		Return([]wlRequestRepo.PendingWLRequestWithRequester{}, nil).
 		Once()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.ViewPendingWLRequests(ctx, nil, update, fsm.StateIdle)
+	handler := ViewPendingWLRequests(mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.NoError(t, err)
 	assert.Equal(t, fsm.StateIdle, state)
@@ -185,10 +170,9 @@ func TestHandlers_ViewPendingWLRequests_NoRequests(t *testing.T) {
 	assert.NotEmpty(t, msgParams.Text)
 }
 
-func TestHandlers_ViewPendingWLRequests_RepositoryError(t *testing.T) {
+func TestViewPendingWLRequests_RepositoryError(t *testing.T) {
 	ctx := context.Background()
 
-	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
 	mockSender := newMockiMessageSender(t)
 
@@ -204,9 +188,8 @@ func TestHandlers_ViewPendingWLRequests_RepositoryError(t *testing.T) {
 		Return(nil, expectedErr).
 		Once()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.ViewPendingWLRequests(ctx, nil, update, fsm.StateIdle)
+	handler := ViewPendingWLRequests(mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get pending wl requests")
@@ -214,14 +197,12 @@ func TestHandlers_ViewPendingWLRequests_RepositoryError(t *testing.T) {
 	assert.Nil(t, msgParams)
 }
 
-func TestHandlers_ViewPendingWLRequests_SendMessageError_ContinuesProcessing(t *testing.T) {
+func TestViewPendingWLRequests_SendMessageError_ContinuesProcessing(t *testing.T) {
 	ctx := context.Background()
 
-	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
 	mockSender := newMockiMessageSender(t)
 
-	// Create two users and requests
 	now := time.Now()
 	user1, _ := domainUser.NewBuilder().
 		NewID().
@@ -285,11 +266,9 @@ func TestHandlers_ViewPendingWLRequests_SendMessageError_ContinuesProcessing(t *
 		Return(&models.Message{ID: 2}, nil).
 		Once()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
+	handler := ViewPendingWLRequests(mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
-	state, msgParams, err := h.ViewPendingWLRequests(ctx, nil, update, fsm.StateIdle)
-
-	// Should not return error, continues processing
 	require.NoError(t, err)
 	assert.Equal(t, fsm.StateIdle, state)
 	assert.Nil(t, msgParams)
