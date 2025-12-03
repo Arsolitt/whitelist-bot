@@ -213,3 +213,7 @@ func (r *TelegramRouter) StateMatchFunc(expectedState fsm.State) bot.MatchFunc {
 func (r *TelegramRouter) RegisterHandlerMatchFunc(matcher bot.MatchFunc, handler HandlerFunc) {
 	r.bot.RegisterHandlerMatchFunc(matcher, r.WrapHandler(handler))
 }
+
+func (r *TelegramRouter) Bot() *bot.Bot {
+	return r.bot
+}

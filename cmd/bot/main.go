@@ -9,6 +9,7 @@ import (
 
 	"whitelist-bot/internal/core"
 	"whitelist-bot/internal/core/db"
+	"whitelist-bot/internal/core/kv"
 	"whitelist-bot/internal/core/logger"
 	"whitelist-bot/internal/fsm"
 	memoryFSM "whitelist-bot/internal/fsm/memory"
@@ -19,10 +20,9 @@ import (
 
 	postgresUserRepository "whitelist-bot/internal/repository/user/postgres"
 	postgresWLRequestRepository "whitelist-bot/internal/repository/wl_request/postgres"
-
-	"github.com/go-telegram/bot"
 )
 
+// TODO: add support to return multiple messages in one handler.
 // TODO: write tests !!!!!!!!!!
 // TODO: refactor FSM to store metadata for each state.
 // TODO: add event system for notifications.
@@ -32,6 +32,7 @@ import (
 // TODO: add middleware for checking permissions.
 // TODO: add middleware for recovering panics.
 // TODO: add requests limit for users.
+// TODO: refactor to use Must methods for initialization.
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -64,34 +65,55 @@ func main() {
 	}
 	defer dbPG.Close()
 
+	conn, err := kv.GetNatsConn(ctx, cfg.Nats)
+	if err != nil {
+		slog.Error("Failed to connect to NATS", "error", err.Error())
+		os.Exit(1)
+	}
+	defer conn.Drain()
+
 	userRepo := postgresUserRepository.NewUserRepository(dbPG)
 	wlRequestRepo := postgresWLRequestRepository.NewWLRequestRepository(dbPG)
-	h := handlers.New(userRepo, wlRequestRepo, cfg)
-	r := router.NewTelegramRouter(fsmService, lockerService, userRepo, h.GlobalErrorHandler, h.GlobalSuccessHandler)
 
-	opts := []bot.Option{
-		bot.WithDefaultHandler(r.WrapHandler(h.DefaultHandler)),
-		bot.WithErrorsHandler(func(err error) {
+	// metastoreService, err := natsMetastore.New(ctx, conn, "whitelist-bot", cfg.Nats.MetastoreReplicas)
+	if err != nil {
+		slog.Error("Failed to create NATS metastore", "error", err.Error())
+		os.Exit(1)
+	}
+	// h := handlers.New(userRepo, wlRequestRepo, metastoreService, cfg)
+	r, err := router.NewTelegramRouter(fsmService,
+		lockerService,
+		userRepo,
+		handlers.GlobalErrorHandler(),
+		handlers.GlobalSuccessHandler(cfg),
+		cfg.Telegram.Token,
+		handlers.DefaultHandler(),
+		func(err error) {
 			if strings.Contains(err.Error(), "context canceled") {
 				slog.Info("Bot stopped")
 				return
 			}
 			slog.Error("Bot error", "error", err.Error())
-		}),
-	}
-
-	b, err := bot.New(cfg.Telegram.Token, opts...)
+		},
+	)
 	if err != nil {
-		slog.Error("Failed to create bot", "error", err)
+		slog.Error("Failed to create telegram router", "error", err.Error())
 		os.Exit(1)
 	}
 
-	r.SetBot(b)
+	// INFO HANDLER
+	r.RegisterHandlerMatchFunc(
+		matcher.And(
+			matcher.MsgText(core.CommandInfo),
+			r.StateMatchFunc(fsm.StateIdle),
+		),
+		handlers.Info(userRepo),
+	)
 
-	r.RegisterHandlerMatchFunc(matcher.And(matcher.MsgText(core.CommandInfo), r.StateMatchFunc(fsm.StateIdle)), h.Info)
+	// NEW WL REQUEST HANDLER
 	r.RegisterHandlerMatchFunc(
 		matcher.And(matcher.MsgText(core.CommandNewWLRequest), r.StateMatchFunc(fsm.StateIdle)),
-		h.NewWLRequest,
+		handlers.NewWLRequest(),
 	)
 	r.RegisterHandlerMatchFunc(
 		matcher.And(
@@ -99,22 +121,33 @@ func main() {
 			r.StateMatchFunc(fsm.StateIdle),
 			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
 		),
-		h.ViewPendingWLRequests,
+		handlers.ViewPendingWLRequests(wlRequestRepo, r.Bot()),
 	)
-	r.RegisterHandlerMatchFunc(r.StateMatchFunc(fsm.StateWaitingWLNickname), h.SubmitWLRequestNickname)
+	r.RegisterHandlerMatchFunc(r.StateMatchFunc(fsm.StateWaitingWLNickname), handlers.SubmitWLRequestNickname(userRepo, wlRequestRepo))
 
 	r.RegisterHandlerMatchFunc(
 		matcher.And(
 			matcher.CallbackAction(core.ActionWLRequestApprove),
 			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
 		),
-		h.ApproveWLRequest)
+		handlers.ApproveWLRequest(userRepo, wlRequestRepo, r.Bot()))
 	r.RegisterHandlerMatchFunc(
 		matcher.And(
 			matcher.CallbackAction(core.ActionWLRequestDecline),
 			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
 		),
-		h.DeclineWLRequest)
+		handlers.DeclineWLRequest(userRepo, wlRequestRepo, r.Bot()))
 
-	b.Start(ctx)
+	// r.RegisterHandlerMatchFunc(matcher.And(
+	// 	r.StateMatchFunc(fsm.StateIdle),
+	// 	matcher.MsgText(core.CommandAnketaStart),
+	// ), h.AnketaStart)
+	// r.RegisterHandlerMatchFunc(r.StateMatchFunc(fsm.StateAnketaName), h.AnketaName)
+	// r.RegisterHandlerMatchFunc(r.StateMatchFunc(fsm.StateAnketaAge), h.AnketaAge)
+	// r.RegisterHandlerMatchFunc(matcher.And(
+	// 	r.StateMatchFunc(fsm.StateIdle),
+	// 	matcher.MsgText(core.CommandAnketaInfo),
+	// ), h.AnketaInfo)
+
+	r.Start(ctx)
 }
