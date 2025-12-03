@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHandlers_DeclineWLRequest_Success(t *testing.T) {
+func TestDeclineWLRequest_Success(t *testing.T) {
 	ctx := context.Background()
 
 	mockUserRepo := newMockiUserRepository(t)
@@ -125,16 +125,15 @@ func TestHandlers_DeclineWLRequest_Success(t *testing.T) {
 		Return(true, nil).
 		Once()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.DeclineWLRequest(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.NoError(t, err)
 	assert.Equal(t, fsm.StateIdle, state)
 	assert.Nil(t, msgParams)
 }
 
-func TestHandlers_DeclineWLRequest_InvalidCallbackData(t *testing.T) {
+func TestDeclineWLRequest_InvalidCallbackData(t *testing.T) {
 	ctx := context.Background()
 
 	mockUserRepo := newMockiUserRepository(t)
@@ -157,9 +156,8 @@ func TestHandlers_DeclineWLRequest_InvalidCallbackData(t *testing.T) {
 		Return(true, nil).
 		Once()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.DeclineWLRequest(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to unmarshal callback data")
@@ -167,7 +165,7 @@ func TestHandlers_DeclineWLRequest_InvalidCallbackData(t *testing.T) {
 	assert.Nil(t, msgParams)
 }
 
-func TestHandlers_DeclineWLRequest_InvalidAction(t *testing.T) {
+func TestDeclineWLRequest_InvalidAction(t *testing.T) {
 	ctx := context.Background()
 
 	mockUserRepo := newMockiUserRepository(t)
@@ -215,9 +213,8 @@ func TestHandlers_DeclineWLRequest_InvalidAction(t *testing.T) {
 		Return(true, nil).
 		Once()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.DeclineWLRequest(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid action")
@@ -225,7 +222,7 @@ func TestHandlers_DeclineWLRequest_InvalidAction(t *testing.T) {
 	assert.Nil(t, msgParams)
 }
 
-func TestHandlers_DeclineWLRequest_WLRequestNotFound(t *testing.T) {
+func TestDeclineWLRequest_WLRequestNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	mockUserRepo := newMockiUserRepository(t)
@@ -280,9 +277,8 @@ func TestHandlers_DeclineWLRequest_WLRequestNotFound(t *testing.T) {
 		Return(true, nil).
 		Once()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.DeclineWLRequest(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get wl request")
@@ -290,7 +286,7 @@ func TestHandlers_DeclineWLRequest_WLRequestNotFound(t *testing.T) {
 	assert.Nil(t, msgParams)
 }
 
-func TestHandlers_DeclineWLRequest_ArbiterNotFound(t *testing.T) {
+func TestDeclineWLRequest_ArbiterNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	mockUserRepo := newMockiUserRepository(t)
@@ -350,9 +346,8 @@ func TestHandlers_DeclineWLRequest_ArbiterNotFound(t *testing.T) {
 		Return(true, nil).
 		Once()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.DeclineWLRequest(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get arbiter")
@@ -360,7 +355,7 @@ func TestHandlers_DeclineWLRequest_ArbiterNotFound(t *testing.T) {
 	assert.Nil(t, msgParams)
 }
 
-func TestHandlers_DeclineWLRequest_RequesterNotFound(t *testing.T) {
+func TestDeclineWLRequest_RequesterNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	mockUserRepo := newMockiUserRepository(t)
@@ -437,9 +432,8 @@ func TestHandlers_DeclineWLRequest_RequesterNotFound(t *testing.T) {
 		Return(true, nil).
 		Once()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.DeclineWLRequest(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get requester")
@@ -447,7 +441,7 @@ func TestHandlers_DeclineWLRequest_RequesterNotFound(t *testing.T) {
 	assert.Nil(t, msgParams)
 }
 
-func TestHandlers_DeclineWLRequest_DeclineError(t *testing.T) {
+func TestDeclineWLRequest_DeclineError(t *testing.T) {
 	ctx := context.Background()
 
 	mockUserRepo := newMockiUserRepository(t)
@@ -524,9 +518,8 @@ func TestHandlers_DeclineWLRequest_DeclineError(t *testing.T) {
 		Return(true, nil).
 		Once()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.DeclineWLRequest(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to decline wl request")
@@ -534,7 +527,7 @@ func TestHandlers_DeclineWLRequest_DeclineError(t *testing.T) {
 	assert.Nil(t, msgParams)
 }
 
-func TestHandlers_DeclineWLRequest_UpdateWLRequestError(t *testing.T) {
+func TestDeclineWLRequest_UpdateWLRequestError(t *testing.T) {
 	ctx := context.Background()
 
 	mockUserRepo := newMockiUserRepository(t)
@@ -616,9 +609,8 @@ func TestHandlers_DeclineWLRequest_UpdateWLRequestError(t *testing.T) {
 		Return(true, nil).
 		Once()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.DeclineWLRequest(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to update wl request")
@@ -626,7 +618,7 @@ func TestHandlers_DeclineWLRequest_UpdateWLRequestError(t *testing.T) {
 	assert.Nil(t, msgParams)
 }
 
-func TestHandlers_DeclineWLRequest_EditMessageError(t *testing.T) {
+func TestDeclineWLRequest_EditMessageError(t *testing.T) {
 	ctx := context.Background()
 
 	mockUserRepo := newMockiUserRepository(t)
@@ -725,9 +717,8 @@ func TestHandlers_DeclineWLRequest_EditMessageError(t *testing.T) {
 		Return(true, nil).
 		Once()
 
-	h := NewWithSender(mockUserRepo, mockWLRepo, mockSender, core.Config{})
-
-	state, msgParams, err := h.DeclineWLRequest(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
+	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to edit message")
