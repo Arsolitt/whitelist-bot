@@ -8,4 +8,6 @@ const (
 	CommandDeclineWLRequest      = "Отклонить"
 	ActionWLRequestApprove       = "wlapp"
 	ActionWLRequestDecline       = "wldec"
+	// CommandAnketaStart           = "Начать анкету"
+	// CommandAnketaInfo            = "Посмотреть анкету"
 )
