@@ -20,7 +20,7 @@ func Info(
 		b *bot.Bot,
 		update *models.Update,
 		currentState fsm.State,
-	) (fsm.State, *bot.SendMessageParams, error) {
+	) (fsm.State, router.Response, error) {
 		if currentState != fsm.StateIdle {
 			return currentState, nil, core.ErrInvalidUserState
 		}
@@ -30,9 +30,11 @@ func Info(
 			return fsm.StateIdle, nil, fmt.Errorf("failed to get user: %w", err)
 		}
 
-		msgParams := &bot.SendMessageParams{
-			Text: msgs.UserInfo(user),
-		}
-		return fsm.StateIdle, msgParams, nil
+		response := router.NewMessageResponse(
+			&bot.SendMessageParams{
+				Text: msgs.UserInfo(user),
+			},
+		)
+		return fsm.StateIdle, response, nil
 	}
 }
