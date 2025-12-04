@@ -16,10 +16,10 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-type HandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, currentState fsm.State) (fsm.State, *bot.SendMessageParams, error)
+type HandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, currentState fsm.State) (fsm.State, Response, error)
 type ErrorHandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, err error)
 
-type SuccessHandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State, msgParams *bot.SendMessageParams)
+type SuccessHandlerFunc func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State, response Response)
 
 type iUserRepository interface {
 	UserByTelegramID(ctx context.Context, telegramID int64) (domainUser.User, error)

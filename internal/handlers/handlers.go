@@ -8,9 +8,6 @@ import (
 	domainWLRequest "whitelist-bot/internal/domain/wl_request"
 	"whitelist-bot/internal/metastore"
 	repository "whitelist-bot/internal/repository/wl_request"
-
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
 )
 
 type iUserGetter interface {
@@ -33,12 +30,6 @@ type iWLRequestRepository interface {
 	PendingWLRequestsWithRequester(ctx context.Context, limit int64) ([]repository.PendingWLRequestWithRequester, error)
 	WLRequestByID(ctx context.Context, id domainWLRequest.ID) (domainWLRequest.WLRequest, error)
 	UpdateWLRequest(ctx context.Context, wlRequest domainWLRequest.WLRequest) (domainWLRequest.WLRequest, error)
-}
-
-type iMessageSender interface {
-	SendMessage(ctx context.Context, params *bot.SendMessageParams) (*models.Message, error)
-	AnswerCallbackQuery(ctx context.Context, params *bot.AnswerCallbackQueryParams) (bool, error)
-	EditMessageText(ctx context.Context, params *bot.EditMessageTextParams) (*models.Message, error)
 }
 
 type Handlers struct {
