@@ -12,12 +12,12 @@ import (
 
 // TODO: rewrite routing for callback queries.
 func NewWLRequest() router.HandlerFunc {
-	return func(ctx context.Context, _ *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
-		msgParams := bot.SendMessageParams{
-			ChatID:    update.Message.Chat.ID,
-			Text:      msgs.WaitingForNickname(),
-			ParseMode: "HTML",
-		}
-		return fsm.StateWaitingWLNickname, &msgParams, nil
+	return func(ctx context.Context, _ *bot.Bot, update *models.Update, state fsm.State) (fsm.State, router.Response, error) {
+		response := router.NewMessageResponse(
+			&bot.SendMessageParams{
+				Text: msgs.WaitingForNickname(),
+			},
+		)
+		return fsm.StateWaitingWLNickname, response, nil
 	}
 }

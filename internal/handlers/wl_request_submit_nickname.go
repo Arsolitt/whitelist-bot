@@ -18,7 +18,7 @@ func SubmitWLRequestNickname(
 	userRepo iUserRepository,
 	wlRequestRepo iWLRequestRepository,
 ) router.HandlerFunc {
-	return func(ctx context.Context, _ *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+	return func(ctx context.Context, _ *bot.Bot, update *models.Update, state fsm.State) (fsm.State, router.Response, error) {
 		// TODO: add validation for nickname. Length, special characters, etc.
 		user, err := userRepo.UserByTelegramID(ctx, update.Message.From.ID)
 		if err != nil {
@@ -41,11 +41,11 @@ func SubmitWLRequestNickname(
 
 		logger.WithLogValue(ctx, logger.WLRequestIDField, dbWLRequest.ID().String())
 
-		msgParams := bot.SendMessageParams{
-			ChatID:    update.Message.Chat.ID,
-			Text:      msgs.WLRequestCreated(dbWLRequest),
-			ParseMode: "HTML",
-		}
-		return fsm.StateIdle, &msgParams, nil
+		response := router.NewMessageResponse(
+			&bot.SendMessageParams{
+				Text: msgs.WLRequestCreated(dbWLRequest),
+			},
+		)
+		return fsm.StateIdle, response, nil
 	}
 }

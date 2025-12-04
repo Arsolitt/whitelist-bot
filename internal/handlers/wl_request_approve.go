@@ -21,75 +21,77 @@ import (
 func ApproveWLRequest(
 	userRepo iUserRepository,
 	wlRequestRepo iWLRequestRepository,
-	sender iMessageSender,
 ) router.HandlerFunc {
-	return func(ctx context.Context, _ *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+	return func(ctx context.Context, _ *bot.Bot, update *models.Update, state fsm.State) (fsm.State, router.Response, error) {
 		callbackData, err := parseCallbackData(update.CallbackQuery.Data)
 		if err != nil {
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "неверный формат callback data")
-			return state, nil, fmt.Errorf("failed to unmarshal callback data: %w", err)
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("неверный формат callback data"),
+			}, nil)
+			return state, response, fmt.Errorf("failed to unmarshal callback data: %w", err)
 		}
 
 		if !callbackData.IsApprove() {
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "неверный action")
-			return state, nil, fmt.Errorf("invalid action: expected approve, got %s", callbackData.Action())
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("неверный action"),
+			}, nil)
+			return state, response, fmt.Errorf("invalid action: expected approve, got %s", callbackData.Action())
 		}
 
 		ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, callbackData.ID().String())
 
 		dbWLRequest, err := wlRequestRepo.WLRequestByID(ctx, callbackData.ID())
 		if err != nil {
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "заявка не найдена")
-			return state, nil, fmt.Errorf("failed to get wl request: %w", err)
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("заявка не найдена"),
+			}, nil)
+			return state, response, fmt.Errorf("failed to get wl request: %w", err)
 		}
 		slog.DebugContext(ctx, "WL request fetched from database")
 
 		arbiter, err := userRepo.UserByTelegramID(ctx, update.CallbackQuery.From.ID)
 		if err != nil {
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "не удалось получить арбитра")
-			return state, nil, fmt.Errorf("failed to get arbiter: %w", err)
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("не удалось получить арбитра"),
+			}, nil)
+			return state, response, fmt.Errorf("failed to get arbiter: %w", err)
 		}
 		ctx = logger.WithLogValue(ctx, logger.ArbiterIDField, arbiter.ID().String())
 		slog.DebugContext(ctx, "Arbiter fetched from database")
 
 		requester, err := userRepo.UserByID(ctx, domainUser.ID(dbWLRequest.RequesterID()))
 		if err != nil {
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "не удалось получить заявителя")
-			return state, nil, fmt.Errorf("failed to get requester: %w", err)
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("не удалось получить заявителя"),
+			}, nil)
+			return state, response, fmt.Errorf("failed to get requester: %w", err)
 		}
 		ctx = logger.WithLogValue(ctx, logger.RequesterIDField, requester.ID().String())
 		slog.DebugContext(ctx, "Requester fetched from database")
 
 		updatedRequest, err := dbWLRequest.Approve(domainWLRequest.ArbiterID(arbiter.ID()))
 		if err != nil {
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "ошибка при обновлении заявки")
-			return state, nil, fmt.Errorf("failed to build updated request: %w", err)
+			response := router.NewMessageResponse(&bot.SendMessageParams{
+				Text: msgs.CallbackError("ошибка при обновлении заявки"),
+			})
+			return state, response, fmt.Errorf("failed to build updated request: %w", err)
 		}
 
 		_, err = wlRequestRepo.UpdateWLRequest(ctx, updatedRequest)
 		if err != nil {
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "ошибка при сохранении изменений")
-			return state, nil, fmt.Errorf("failed to update wl request: %w", err)
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("ошибка при сохранении изменений"),
+			}, nil)
+			return state, response, fmt.Errorf("failed to update wl request: %w", err)
 		}
 
-		_, err = sender.EditMessageText(ctx, &bot.EditMessageTextParams{
-			ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
-			MessageID: update.CallbackQuery.Message.Message.ID,
-			Text:      msgs.ApprovedWLRequest(dbWLRequest, arbiter, requester),
-			ParseMode: "HTML",
-		})
-		if err != nil {
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "ошибка при редактировании сообщения")
-			return state, nil, fmt.Errorf("failed to edit message: %w", err)
-		}
-
-		_, _ = sender.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
-			CallbackQueryID: update.CallbackQuery.ID,
-			Text:            "✅ Заявка подтверждена",
-			ShowAlert:       false,
+		response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+			Text: "✅ Заявка подтверждена",
+		}, &bot.EditMessageTextParams{
+			Text: msgs.ApprovedWLRequest(dbWLRequest, arbiter, requester),
 		})
 
-		return state, nil, nil
+		return state, response, nil
 	}
 }
 
@@ -97,12 +99,4 @@ func parseCallbackData(data string) (callbacks.WLRequestCallbackData, error) {
 	var callbackData callbacks.WLRequestCallbackData
 	err := json.Unmarshal([]byte(data), &callbackData)
 	return callbackData, err
-}
-
-func sendCallbackError(ctx context.Context, sender iMessageSender, callbackQueryID, errorText string) {
-	_, _ = sender.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
-		CallbackQueryID: callbackQueryID,
-		Text:            msgs.CallbackError(errorText),
-		ShowAlert:       true,
-	})
 }

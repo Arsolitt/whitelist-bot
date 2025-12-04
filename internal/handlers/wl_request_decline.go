@@ -19,18 +19,22 @@ import (
 func DeclineWLRequest(
 	userRepo iUserRepository,
 	wlRequestRepo iWLRequestRepository,
-	sender iMessageSender,
 ) router.HandlerFunc {
-	return func(ctx context.Context, _ *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+	return func(ctx context.Context, _ *bot.Bot, update *models.Update, state fsm.State) (fsm.State, router.Response, error) {
 		callbackData, err := parseCallbackData(update.CallbackQuery.Data)
 		if err != nil {
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "неверный формат callback data")
-			return state, nil, fmt.Errorf("failed to unmarshal callback data: %w", err)
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("неверный формат callback data"),
+			}, nil)
+			return state, response, fmt.Errorf("failed to unmarshal callback data: %w", err)
 		}
 
+		// TODO: ??????????????
 		if !callbackData.IsDecline() {
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "неверный action")
-			return state, nil, fmt.Errorf("invalid action: expected decline, got %s", callbackData.Action())
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("неверный action"),
+			}, nil)
+			return state, response, fmt.Errorf("invalid action: expected decline, got %s", callbackData.Action())
 		}
 
 		ctx = logger.WithLogValue(ctx, logger.WLRequestIDField, callbackData.ID().String())
@@ -38,24 +42,30 @@ func DeclineWLRequest(
 		dbWLRequest, err := wlRequestRepo.WLRequestByID(ctx, callbackData.ID())
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to get wl request", logger.ErrorField, err.Error())
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "заявка не найдена")
-			return state, nil, fmt.Errorf("failed to get wl request: %w", err)
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("заявка не найдена"),
+			}, nil)
+			return state, response, fmt.Errorf("failed to get wl request: %w", err)
 		}
 		slog.DebugContext(ctx, "WL request fetched from database")
 
 		arbiter, err := userRepo.UserByTelegramID(ctx, update.CallbackQuery.From.ID)
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to get arbiter", logger.ErrorField, err.Error())
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "не удалось получить арбитра")
-			return state, nil, fmt.Errorf("failed to get arbiter: %w", err)
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("не удалось получить арбитра"),
+			}, nil)
+			return state, response, fmt.Errorf("failed to get arbiter: %w", err)
 		}
 		ctx = logger.WithLogValue(ctx, logger.ArbiterIDField, arbiter.ID().String())
 		slog.DebugContext(ctx, "Arbiter fetched from database")
 
 		requester, err := userRepo.UserByID(ctx, domainUser.ID(dbWLRequest.RequesterID()))
 		if err != nil {
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "не удалось получить заявителя")
-			return state, nil, fmt.Errorf("failed to get requester: %w", err)
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("не удалось получить заявителя"),
+			}, nil)
+			return state, response, fmt.Errorf("failed to get requester: %w", err)
 		}
 		ctx = logger.WithLogValue(ctx, logger.RequesterIDField, requester.ID().String())
 		slog.DebugContext(ctx, "Requester fetched from database")
@@ -66,34 +76,27 @@ func DeclineWLRequest(
 		)
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to decline wl request", logger.ErrorField, err.Error())
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "ошибка при обновлении заявки")
-			return state, nil, fmt.Errorf("failed to decline wl request: %w", err)
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("ошибка при обновлении заявки"),
+			}, nil)
+			return state, response, fmt.Errorf("failed to decline wl request: %w", err)
 		}
 
 		_, err = wlRequestRepo.UpdateWLRequest(ctx, declinedRequest)
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to update wl request", logger.ErrorField, err.Error())
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "ошибка при сохранении изменений")
-			return state, nil, fmt.Errorf("failed to update wl request: %w", err)
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+				Text: msgs.CallbackError("ошибка при сохранении изменений"),
+			}, nil)
+			return state, response, fmt.Errorf("failed to update wl request: %w", err)
 		}
 
-		_, err = sender.EditMessageText(ctx, &bot.EditMessageTextParams{
-			ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
-			MessageID: update.CallbackQuery.Message.Message.ID,
-			Text:      msgs.DeclinedWLRequest(declinedRequest, arbiter, requester),
-			ParseMode: "HTML",
-		})
-		if err != nil {
-			sendCallbackError(ctx, sender, update.CallbackQuery.ID, "ошибка при редактировании сообщения")
-			return state, nil, fmt.Errorf("failed to edit message: %w", err)
-		}
-
-		_, _ = sender.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
-			CallbackQueryID: update.CallbackQuery.ID,
-			Text:            "❌ Заявка отклонена!",
-			ShowAlert:       false,
+		response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
+			Text: "❌ Заявка отклонена!",
+		}, &bot.EditMessageTextParams{
+			Text: msgs.DeclinedWLRequest(declinedRequest, arbiter, requester),
 		})
 
-		return state, nil, nil
+		return state, response, nil
 	}
 }

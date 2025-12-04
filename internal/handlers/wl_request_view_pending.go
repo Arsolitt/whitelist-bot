@@ -3,9 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"whitelist-bot/internal/callbacks"
-	"whitelist-bot/internal/core/logger"
 	"whitelist-bot/internal/fsm"
 	"whitelist-bot/internal/msgs"
 	"whitelist-bot/internal/router"
@@ -23,7 +21,6 @@ type pendingWLRequestMessage struct {
 
 func ViewPendingWLRequests(
 	wlRequestRepo iWLRequestRepository,
-	sender iMessageSender,
 ) router.HandlerFunc {
 	preparePendingWLRequestMessages := func(ctx context.Context) ([]pendingWLRequestMessage, error) {
 		wlRequests, err := wlRequestRepo.PendingWLRequestsWithRequester(ctx, PENDING_WL_REQUESTS_LIMIT)
@@ -61,33 +58,30 @@ func ViewPendingWLRequests(
 		return messages, nil
 	}
 
-	return func(ctx context.Context, _ *bot.Bot, update *models.Update, state fsm.State) (fsm.State, *bot.SendMessageParams, error) {
+	return func(ctx context.Context, _ *bot.Bot, update *models.Update, state fsm.State) (fsm.State, router.Response, error) {
 		messages, err := preparePendingWLRequestMessages(ctx)
 		if err != nil {
 			return state, nil, err
 		}
+		response := router.NewMessageResponse()
 
 		if len(messages) == 0 {
-			msgParams := &bot.SendMessageParams{
-				Text: msgs.NoPendingWLRequests(),
-			}
-			return state, msgParams, nil
+			response.AddMessage(
+				&bot.SendMessageParams{
+					Text: msgs.NoPendingWLRequests(),
+				},
+			)
+			return state, response, nil
 		}
 
 		// TODO: return multiple messages instead if send one by one.
 		for _, msg := range messages {
-			_, err = sender.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID:      update.Message.Chat.ID,
+			response.AddMessage(&bot.SendMessageParams{
 				Text:        msg.Text,
 				ReplyMarkup: msg.ReplyMarkup,
-				ParseMode:   models.ParseModeHTML,
 			})
-			if err != nil {
-				slog.ErrorContext(ctx, "Failed to send message", logger.ErrorField, err.Error())
-				continue
-			}
 		}
 
-		return state, nil, nil
+		return state, response, nil
 	}
 }
