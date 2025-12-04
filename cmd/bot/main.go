@@ -22,12 +22,9 @@ import (
 	postgresWLRequestRepository "whitelist-bot/internal/repository/wl_request/postgres"
 )
 
-// TODO: add support to return multiple messages in one handler.
 // TODO: write tests !!!!!!!!!!
-// TODO: refactor FSM to store metadata for each state.
 // TODO: add event system for notifications.
 // TODO: add validation for nickname. Length, special characters, etc.
-// TODO: refactor wl_request.go handlers for better readability.
 // TODO: add emojis to messages.
 // TODO: add middleware for checking permissions.
 // TODO: add middleware for recovering panics.
@@ -121,7 +118,7 @@ func main() {
 			r.StateMatchFunc(fsm.StateIdle),
 			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
 		),
-		handlers.ViewPendingWLRequests(wlRequestRepo, r.Bot()),
+		handlers.ViewPendingWLRequests(wlRequestRepo),
 	)
 	r.RegisterHandlerMatchFunc(
 		r.StateMatchFunc(fsm.StateWaitingWLNickname),
@@ -133,13 +130,13 @@ func main() {
 			matcher.CallbackAction(core.ActionWLRequestApprove),
 			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
 		),
-		handlers.ApproveWLRequest(userRepo, wlRequestRepo, r.Bot()))
+		handlers.ApproveWLRequest(userRepo, wlRequestRepo))
 	r.RegisterHandlerMatchFunc(
 		matcher.And(
 			matcher.CallbackAction(core.ActionWLRequestDecline),
 			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
 		),
-		handlers.DeclineWLRequest(userRepo, wlRequestRepo, r.Bot()))
+		handlers.DeclineWLRequest(userRepo, wlRequestRepo))
 
 	// r.RegisterHandlerMatchFunc(matcher.And(
 	// 	r.StateMatchFunc(fsm.StateIdle),
