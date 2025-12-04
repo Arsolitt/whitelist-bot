@@ -3,9 +3,10 @@ package handlers
 import (
 	"context"
 	"log/slog"
-	"slices"
 	"whitelist-bot/internal/core"
+	"whitelist-bot/internal/core/logger"
 	"whitelist-bot/internal/fsm"
+	"whitelist-bot/internal/router"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -13,60 +14,16 @@ import (
 
 func GlobalSuccessHandler(
 	cfg core.Config,
-) func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State, msgParams *bot.SendMessageParams) {
-	return func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State, msgParams *bot.SendMessageParams) {
-		if update.Message == nil {
+) func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State, response router.Response) {
+	return func(ctx context.Context, b *bot.Bot, update *models.Update, state fsm.State, response router.Response) {
+		if response == nil {
 			return
 		}
-		if msgParams == nil {
-			return
-		}
-		if state == fsm.StateIdle {
-			buttons := [][]models.KeyboardButton{
-				{
-					{Text: core.CommandInfo},
-					{Text: core.CommandNewWLRequest},
-					// {Text: core.CommandAnketaStart},
-					// {Text: core.CommandAnketaInfo},
-				},
-			}
-			if slices.Contains(cfg.Telegram.AdminIDs, update.Message.From.ID) {
-				buttons[0] = append(buttons[0], models.KeyboardButton{Text: "Посмотреть заявки"})
-			}
-			if msgParams.ReplyMarkup == nil {
-				slog.DebugContext(ctx, "Success handler called with new markup")
-				msgParams.ReplyMarkup = &models.ReplyKeyboardMarkup{
-					Keyboard:       buttons,
-					ResizeKeyboard: true,
-				}
-			} else if msgParams.ReplyMarkup.(*models.ReplyKeyboardMarkup) != nil {
-				slog.DebugContext(ctx, "Success handler called with old markup")
-				oldMarkup := msgParams.ReplyMarkup.(*models.ReplyKeyboardMarkup)
-				msgParams.ReplyMarkup = &models.ReplyKeyboardMarkup{
-					Keyboard:              append(oldMarkup.Keyboard, buttons...),
-					ResizeKeyboard:        oldMarkup.ResizeKeyboard,
-					IsPersistent:          oldMarkup.IsPersistent,
-					OneTimeKeyboard:       oldMarkup.OneTimeKeyboard,
-					InputFieldPlaceholder: oldMarkup.InputFieldPlaceholder,
-					Selective:             oldMarkup.Selective,
-				}
-			}
-		} else if msgParams.ReplyMarkup == nil {
-			msgParams.ReplyMarkup = &models.ReplyKeyboardRemove{
-				RemoveKeyboard: true,
-				Selective:      true,
-			}
-		}
-
-		if msgParams.ChatID == nil || msgParams.ChatID == 0 {
-			msgParams.ChatID = update.Message.Chat.ID
-		}
-
-		if msgParams.ParseMode == "" {
-			msgParams.ParseMode = models.ParseModeHTML
-		}
-
-		_, _ = b.SendMessage(ctx, msgParams)
+		err := response.Answer(ctx, b, update, state, cfg)
 		slog.DebugContext(ctx, "Success handler called")
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to answer response", logger.ErrorField, err.Error())
+			return
+		}
 	}
 }
