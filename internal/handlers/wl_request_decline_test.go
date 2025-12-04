@@ -9,11 +9,11 @@ import (
 	"whitelist-bot/internal/callbacks"
 	"whitelist-bot/internal/core"
 	"whitelist-bot/internal/fsm"
+	"whitelist-bot/internal/router"
 
 	domainUser "whitelist-bot/internal/domain/user"
 	domainWLRequest "whitelist-bot/internal/domain/wl_request"
 
-	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -25,7 +25,6 @@ func TestDeclineWLRequest_Success(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
-	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 
@@ -108,29 +107,18 @@ func TestDeclineWLRequest_Success(t *testing.T) {
 		Return(declinedRequest, nil).
 		Once()
 
-	mockSender.EXPECT().
-		EditMessageText(mock.Anything, mock.MatchedBy(func(params *bot.EditMessageTextParams) bool {
-			return params.ChatID == int64(789) &&
-				params.MessageID == 100 &&
-				params.ParseMode == "HTML"
-		})).
-		Return(&models.Message{ID: 100}, nil).
-		Once()
-
-	mockSender.EXPECT().
-		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
-			return params.CallbackQueryID == "callback123" &&
-				params.ShowAlert == false
-		})).
-		Return(true, nil).
-		Once()
-
-	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
-	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo)
+	state, response, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.NoError(t, err)
 	assert.Equal(t, fsm.StateIdle, state)
-	assert.Nil(t, msgParams)
+	require.NotNil(t, response)
+
+	callbackResponse, ok := response.(*router.CallbackResponse)
+	require.True(t, ok)
+	assert.NotNil(t, callbackResponse.CallbackParams)
+	assert.Contains(t, callbackResponse.CallbackParams.Text, "Заявка отклонена")
+	assert.NotNil(t, callbackResponse.EditParams)
 }
 
 func TestDeclineWLRequest_InvalidCallbackData(t *testing.T) {
@@ -138,7 +126,6 @@ func TestDeclineWLRequest_InvalidCallbackData(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
-	mockSender := newMockiMessageSender(t)
 
 	update := &models.Update{
 		CallbackQuery: &models.CallbackQuery{
@@ -148,21 +135,17 @@ func TestDeclineWLRequest_InvalidCallbackData(t *testing.T) {
 		},
 	}
 
-	mockSender.EXPECT().
-		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
-			return params.CallbackQueryID == "callback123" &&
-				params.ShowAlert == true
-		})).
-		Return(true, nil).
-		Once()
-
-	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
-	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo)
+	state, response, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to unmarshal callback data")
 	assert.Equal(t, fsm.StateIdle, state)
-	assert.Nil(t, msgParams)
+	require.NotNil(t, response)
+
+	callbackResponse, ok := response.(*router.CallbackResponse)
+	require.True(t, ok)
+	assert.NotNil(t, callbackResponse.CallbackParams)
 }
 
 func TestDeclineWLRequest_InvalidAction(t *testing.T) {
@@ -170,7 +153,6 @@ func TestDeclineWLRequest_InvalidAction(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
-	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 	requester, err := domainUser.NewBuilder().
@@ -205,21 +187,17 @@ func TestDeclineWLRequest_InvalidAction(t *testing.T) {
 		},
 	}
 
-	mockSender.EXPECT().
-		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
-			return params.CallbackQueryID == "callback123" &&
-				params.ShowAlert == true
-		})).
-		Return(true, nil).
-		Once()
-
-	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
-	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo)
+	state, response, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid action")
 	assert.Equal(t, fsm.StateIdle, state)
-	assert.Nil(t, msgParams)
+	require.NotNil(t, response)
+
+	callbackResponse, ok := response.(*router.CallbackResponse)
+	require.True(t, ok)
+	assert.NotNil(t, callbackResponse.CallbackParams)
 }
 
 func TestDeclineWLRequest_WLRequestNotFound(t *testing.T) {
@@ -227,7 +205,6 @@ func TestDeclineWLRequest_WLRequestNotFound(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
-	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 	requester, err := domainUser.NewBuilder().
@@ -269,21 +246,17 @@ func TestDeclineWLRequest_WLRequestNotFound(t *testing.T) {
 		Return(domainWLRequest.WLRequest{}, expectedErr).
 		Once()
 
-	mockSender.EXPECT().
-		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
-			return params.CallbackQueryID == "callback123" &&
-				params.ShowAlert == true
-		})).
-		Return(true, nil).
-		Once()
-
-	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
-	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo)
+	state, response, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get wl request")
 	assert.Equal(t, fsm.StateIdle, state)
-	assert.Nil(t, msgParams)
+	require.NotNil(t, response)
+
+	callbackResponse, ok := response.(*router.CallbackResponse)
+	require.True(t, ok)
+	assert.NotNil(t, callbackResponse.CallbackParams)
 }
 
 func TestDeclineWLRequest_ArbiterNotFound(t *testing.T) {
@@ -291,7 +264,6 @@ func TestDeclineWLRequest_ArbiterNotFound(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
-	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 	requester, err := domainUser.NewBuilder().
@@ -338,21 +310,17 @@ func TestDeclineWLRequest_ArbiterNotFound(t *testing.T) {
 		Return(domainUser.User{}, expectedErr).
 		Once()
 
-	mockSender.EXPECT().
-		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
-			return params.CallbackQueryID == "callback123" &&
-				params.ShowAlert == true
-		})).
-		Return(true, nil).
-		Once()
-
-	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
-	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo)
+	state, response, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get arbiter")
 	assert.Equal(t, fsm.StateIdle, state)
-	assert.Nil(t, msgParams)
+	require.NotNil(t, response)
+
+	callbackResponse, ok := response.(*router.CallbackResponse)
+	require.True(t, ok)
+	assert.NotNil(t, callbackResponse.CallbackParams)
 }
 
 func TestDeclineWLRequest_RequesterNotFound(t *testing.T) {
@@ -360,7 +328,6 @@ func TestDeclineWLRequest_RequesterNotFound(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
-	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 
@@ -424,21 +391,17 @@ func TestDeclineWLRequest_RequesterNotFound(t *testing.T) {
 		Return(domainUser.User{}, expectedErr).
 		Once()
 
-	mockSender.EXPECT().
-		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
-			return params.CallbackQueryID == "callback123" &&
-				params.ShowAlert == true
-		})).
-		Return(true, nil).
-		Once()
-
-	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
-	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo)
+	state, response, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get requester")
 	assert.Equal(t, fsm.StateIdle, state)
-	assert.Nil(t, msgParams)
+	require.NotNil(t, response)
+
+	callbackResponse, ok := response.(*router.CallbackResponse)
+	require.True(t, ok)
+	assert.NotNil(t, callbackResponse.CallbackParams)
 }
 
 func TestDeclineWLRequest_DeclineError(t *testing.T) {
@@ -446,7 +409,6 @@ func TestDeclineWLRequest_DeclineError(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
-	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 
@@ -510,21 +472,17 @@ func TestDeclineWLRequest_DeclineError(t *testing.T) {
 		Return(requester, nil).
 		Once()
 
-	mockSender.EXPECT().
-		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
-			return params.CallbackQueryID == "callback123" &&
-				params.ShowAlert == true
-		})).
-		Return(true, nil).
-		Once()
-
-	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
-	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo)
+	state, response, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to decline wl request")
 	assert.Equal(t, fsm.StateIdle, state)
-	assert.Nil(t, msgParams)
+	require.NotNil(t, response)
+
+	callbackResponse, ok := response.(*router.CallbackResponse)
+	require.True(t, ok)
+	assert.NotNil(t, callbackResponse.CallbackParams)
 }
 
 func TestDeclineWLRequest_UpdateWLRequestError(t *testing.T) {
@@ -532,7 +490,6 @@ func TestDeclineWLRequest_UpdateWLRequestError(t *testing.T) {
 
 	mockUserRepo := newMockiUserRepository(t)
 	mockWLRepo := newMockiWLRequestRepository(t)
-	mockSender := newMockiMessageSender(t)
 
 	now := time.Now()
 
@@ -601,127 +558,15 @@ func TestDeclineWLRequest_UpdateWLRequestError(t *testing.T) {
 		Return(domainWLRequest.WLRequest{}, expectedErr).
 		Once()
 
-	mockSender.EXPECT().
-		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
-			return params.CallbackQueryID == "callback123" &&
-				params.ShowAlert == true
-		})).
-		Return(true, nil).
-		Once()
-
-	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
-	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
+	handler := DeclineWLRequest(mockUserRepo, mockWLRepo)
+	state, response, err := handler(ctx, nil, update, fsm.StateIdle)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to update wl request")
 	assert.Equal(t, fsm.StateIdle, state)
-	assert.Nil(t, msgParams)
-}
+	require.NotNil(t, response)
 
-func TestDeclineWLRequest_EditMessageError(t *testing.T) {
-	ctx := context.Background()
-
-	mockUserRepo := newMockiUserRepository(t)
-	mockWLRepo := newMockiWLRequestRepository(t)
-	mockSender := newMockiMessageSender(t)
-
-	now := time.Now()
-
-	requester, err := domainUser.NewBuilder().
-		NewID().
-		TelegramIDFromInt(123456).
-		ChatIDFromInt(1234567890).
-		UsernameFromString("requester").
-		CreatedAt(now).
-		UpdatedAt(now).
-		Build()
-	require.NoError(t, err)
-	requesterID := requester.ID()
-
-	arbiter, err := domainUser.NewBuilder().
-		NewID().
-		TelegramIDFromInt(789012).
-		ChatIDFromInt(1234567890).
-		UsernameFromString("arbiter").
-		CreatedAt(now).
-		UpdatedAt(now).
-		Build()
-	require.NoError(t, err)
-
-	wlRequest, err := domainWLRequest.NewBuilder().
-		NewID().
-		RequesterIDFromUserID(requesterID).
-		NicknameFromString("testnick").
-		StatusFromString(string(domainWLRequest.StatusPending)).
-		CreatedAt(now).
-		UpdatedAt(now).
-		Build()
-	require.NoError(t, err)
-	wlRequestID := wlRequest.ID()
-
-	callbackData := callbacks.NewWLRequestCallbackData(wlRequestID, core.ActionWLRequestDecline)
-	callbackDataJSON, err := json.Marshal(callbackData)
-	require.NoError(t, err)
-
-	update := &models.Update{
-		CallbackQuery: &models.CallbackQuery{
-			ID:   "callback123",
-			Data: string(callbackDataJSON),
-			From: models.User{ID: int64(arbiter.TelegramID())},
-			Message: models.MaybeInaccessibleMessage{
-				Message: &models.Message{
-					ID:   100,
-					Chat: models.Chat{ID: 789},
-				},
-			},
-		},
-	}
-
-	declinedRequest, err := wlRequest.Decline(
-		domainWLRequest.ArbiterID(arbiter.ID()),
-		domainWLRequest.DeclineReason("Отклонено администратором"),
-	)
-	require.NoError(t, err)
-
-	mockWLRepo.EXPECT().
-		WLRequestByID(mock.Anything, wlRequestID).
-		Return(wlRequest, nil).
-		Once()
-
-	mockUserRepo.EXPECT().
-		UserByTelegramID(mock.Anything, int64(arbiter.TelegramID())).
-		Return(arbiter, nil).
-		Once()
-
-	mockUserRepo.EXPECT().
-		UserByID(mock.Anything, requesterID).
-		Return(requester, nil).
-		Once()
-
-	mockWLRepo.EXPECT().
-		UpdateWLRequest(mock.Anything, mock.AnythingOfType("wl_request.WLRequest")).
-		Return(declinedRequest, nil).
-		Once()
-
-	expectedErr := errors.New("telegram API error")
-	mockSender.EXPECT().
-		EditMessageText(mock.Anything, mock.AnythingOfType("*bot.EditMessageTextParams")).
-		Return(nil, expectedErr).
-		Once()
-
-	mockSender.EXPECT().
-		AnswerCallbackQuery(mock.Anything, mock.MatchedBy(func(params *bot.AnswerCallbackQueryParams) bool {
-			return params.CallbackQueryID == "callback123" &&
-				params.ShowAlert == true
-		})).
-		Return(true, nil).
-		Once()
-
-	handler := DeclineWLRequest(mockUserRepo, mockWLRepo, mockSender)
-	state, msgParams, err := handler(ctx, nil, update, fsm.StateIdle)
-
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to edit message")
-	assert.Equal(t, fsm.StateIdle, state)
-	assert.Nil(t, msgParams)
+	callbackResponse, ok := response.(*router.CallbackResponse)
+	require.True(t, ok)
+	assert.NotNil(t, callbackResponse.CallbackParams)
 }

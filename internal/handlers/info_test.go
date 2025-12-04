@@ -8,8 +8,8 @@ import (
 	"whitelist-bot/internal/core"
 	"whitelist-bot/internal/domain/user"
 	"whitelist-bot/internal/fsm"
+	"whitelist-bot/internal/router"
 
-	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +28,7 @@ func TestInfo(t *testing.T) {
 		setupMock     func(*mockiUserGetter)
 		expectedState fsm.State
 		expectedError error
-		validateMsg   func(*testing.T, *bot.SendMessageParams)
+		validateMsg   func(*testing.T, router.Response)
 	}{
 		{
 			name:         "success",
@@ -41,10 +41,13 @@ func TestInfo(t *testing.T) {
 			},
 			expectedState: fsm.StateIdle,
 			expectedError: nil,
-			validateMsg: func(t *testing.T, msg *bot.SendMessageParams) {
-				require.NotNil(t, msg)
-				assert.Contains(t, msg.Text, "Информация о пользователе")
-				assert.Contains(t, msg.Text, "testuser")
+			validateMsg: func(t *testing.T, response router.Response) {
+				require.NotNil(t, response)
+				msgResponse, ok := response.(*router.MessageResponse)
+				require.True(t, ok)
+				require.Len(t, msgResponse.Params, 1)
+				assert.Contains(t, msgResponse.Params[0].Text, "Информация о пользователе")
+				assert.Contains(t, msgResponse.Params[0].Text, "testuser")
 			},
 		},
 		{
@@ -53,8 +56,8 @@ func TestInfo(t *testing.T) {
 			setupMock:     func(m *mockiUserGetter) {},
 			expectedState: fsm.StateWaitingWLNickname,
 			expectedError: core.ErrInvalidUserState,
-			validateMsg: func(t *testing.T, msg *bot.SendMessageParams) {
-				assert.Nil(t, msg)
+			validateMsg: func(t *testing.T, response router.Response) {
+				assert.Nil(t, response)
 			},
 		},
 		{
@@ -68,8 +71,8 @@ func TestInfo(t *testing.T) {
 			},
 			expectedState: fsm.StateIdle,
 			expectedError: errors.New("failed to get user: db error"),
-			validateMsg: func(t *testing.T, msg *bot.SendMessageParams) {
-				assert.Nil(t, msg)
+			validateMsg: func(t *testing.T, response router.Response) {
+				assert.Nil(t, response)
 			},
 		},
 		{
@@ -83,8 +86,8 @@ func TestInfo(t *testing.T) {
 			},
 			expectedState: fsm.StateIdle,
 			expectedError: core.ErrUserNotFound,
-			validateMsg: func(t *testing.T, msg *bot.SendMessageParams) {
-				assert.Nil(t, msg)
+			validateMsg: func(t *testing.T, response router.Response) {
+				assert.Nil(t, response)
 			},
 		},
 	}
@@ -109,7 +112,7 @@ func TestInfo(t *testing.T) {
 				},
 			}
 
-			state, msg, err := handler(ctx, nil, update, tt.currentState)
+			state, response, err := handler(ctx, nil, update, tt.currentState)
 
 			assert.Equal(t, tt.expectedState, state)
 
@@ -120,7 +123,7 @@ func TestInfo(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			tt.validateMsg(t, msg)
+			tt.validateMsg(t, response)
 		})
 	}
 }
