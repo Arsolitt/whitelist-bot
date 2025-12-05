@@ -6,7 +6,8 @@ import (
 )
 
 const (
-	TopicUserInfo = "user.info"
+	TopicUserInfo  = "user.info"
+	TopicUserInfo2 = "user.info2"
 )
 
 var (
@@ -16,6 +17,7 @@ var (
 
 type EventBus interface {
 	Publish(ctx context.Context, topic string, data any) error
+	NewConsumer(topic string) (IEventConsumer, error)
 
 	Close() error
 }

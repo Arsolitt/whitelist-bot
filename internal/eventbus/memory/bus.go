@@ -56,9 +56,9 @@ func (b *Bus) Close() error {
 	return nil
 }
 
-func (b *Bus) Consumer(topic string) (*Consumer, error) {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
+func (b *Bus) NewConsumer(topic string) (eventbus.IEventConsumer, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
 	if b.closed {
 		return nil, eventbus.ErrBusClosed
