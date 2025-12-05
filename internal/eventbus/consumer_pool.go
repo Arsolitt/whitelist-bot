@@ -15,23 +15,18 @@ type ConsumerUnit struct {
 }
 
 type ConsumerPool struct {
-	eBus          EventBus
-	units         []ConsumerUnit
-	sem           wp.ISemaphore
-	wgConsumers   sync.WaitGroup
-	wgHandlers    sync.WaitGroup
-	handlerCtx    context.Context
-	handlerCancel context.CancelFunc
+	eBus        EventBus
+	units       []ConsumerUnit
+	sem         wp.ISemaphore
+	wgConsumers sync.WaitGroup
+	wgHandlers  sync.WaitGroup
 }
 
 func NewConsumerPool(eBus EventBus, units []ConsumerUnit, sem wp.ISemaphore) *ConsumerPool {
-	ctx, cancel := context.WithCancel(context.Background())
 	return &ConsumerPool{
-		eBus:          eBus,
-		units:         units,
-		sem:           sem,
-		handlerCtx:    ctx,
-		handlerCancel: cancel,
+		eBus:  eBus,
+		units: units,
+		sem:   sem,
 	}
 }
 
@@ -61,8 +56,8 @@ func (p *ConsumerPool) Start(ctx context.Context) error {
 				go func(d []byte) {
 					defer p.wgHandlers.Done()
 					defer p.sem.Release()
-					if err := u.Handler(p.handlerCtx, d); err != nil {
-						slog.ErrorContext(p.handlerCtx, "Failed to handle event", "error", err.Error())
+					if err := u.Handler(ctx, d); err != nil {
+						slog.ErrorContext(ctx, "Failed to handle event", "error", err.Error())
 						return
 					}
 				}(data)
@@ -75,5 +70,4 @@ func (p *ConsumerPool) Start(ctx context.Context) error {
 func (p *ConsumerPool) Wait() {
 	p.wgConsumers.Wait()
 	p.wgHandlers.Wait()
-	p.handlerCancel()
 }

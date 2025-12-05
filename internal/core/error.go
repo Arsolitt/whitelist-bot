@@ -11,4 +11,5 @@ var (
 	ErrInvalidState     = errors.New("invalid state")
 	ErrInvalidUserState = errors.New("invalid user state")
 	ErrFailedToParseID  = errors.New("failed to parse ID")
+	ErrInvalidUpdate    = errors.New("invalid update")
 )

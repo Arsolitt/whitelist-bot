@@ -15,6 +15,8 @@ type Locker struct {
 	locks map[domainUser.ID]*sync.RWMutex
 }
 
+// WARNING: This locker can potentially cause memory leaks with large number of users.
+// User different lockers with TTL.
 func New() *Locker {
 	return &Locker{
 		locks: make(map[domainUser.ID]*sync.RWMutex),

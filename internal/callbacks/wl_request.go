@@ -71,6 +71,7 @@ func ApproveWLRequestData(ctx context.Context, id domainWLRequest.ID) string {
 	json, err := json.Marshal(NewWLRequestCallbackData(id, core.ActionWLRequestApprove))
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to marshal approve WL request data", logger.ErrorField, err.Error())
+		// TODO: return specific callback data error for future handling.
 		return ""
 	}
 	slog.DebugContext(ctx, "Approve WL request data marshalled", "data", string(json))

@@ -9,17 +9,21 @@ import (
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+
+	domainUser "whitelist-bot/internal/domain/user"
 )
 
 var (
 	ErrUnknownCommandMessage   = "Неизвестная команда"
 	ErrInternalErrorMessage    = "Произошла ошибка при обработке команды"
 	ErrInvalidUserStateMessage = "Неверное состояние пользователя"
+	ErrUsernameHiddenMessage   = "Имя пользователя скрыто. Бота нельзя использовать со скрытым username."
 )
 
 var errorStatusMap = map[error]string{
-	core.ErrUnknownCommand:   ErrUnknownCommandMessage,
-	core.ErrInvalidUserState: ErrInvalidUserStateMessage,
+	core.ErrUnknownCommand:         ErrUnknownCommandMessage,
+	core.ErrInvalidUserState:       ErrInvalidUserStateMessage,
+	domainUser.ErrUsernameRequired: ErrUsernameHiddenMessage,
 }
 
 func GlobalErrorHandler() func(ctx context.Context, b *bot.Bot, update *models.Update, err error) {

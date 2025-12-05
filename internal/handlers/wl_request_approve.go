@@ -71,9 +71,9 @@ func ApproveWLRequest(
 
 		updatedRequest, err := dbWLRequest.Approve(domainWLRequest.ArbiterID(arbiter.ID()))
 		if err != nil {
-			response := router.NewMessageResponse(&bot.SendMessageParams{
+			response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
 				Text: msgs.CallbackError("ошибка при обновлении заявки"),
-			})
+			}, nil)
 			return state, response, fmt.Errorf("failed to build updated request: %w", err)
 		}
 

@@ -37,6 +37,9 @@ func NewMessageResponse(params ...*bot.SendMessageParams) *MessageResponse {
 }
 
 func (r *MessageResponse) Answer(ctx context.Context, sender utils.IMessageSender, update *models.Update, currentState fsm.State, cfg core.Config) error {
+	if update.Message == nil {
+		return core.ErrInvalidUpdate
+	}
 	for _, p := range r.Params {
 		if p == nil {
 			return nil
@@ -112,6 +115,7 @@ func (r *CallbackResponse) Answer(ctx context.Context, sender utils.IMessageSend
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to answer callback query", logger.ErrorField, err.Error())
 		}
+		r.CallbackParams.ShowAlert = true
 	}
 	if r.EditParams != nil {
 		if r.EditParams.ChatID == nil {
@@ -123,7 +127,6 @@ func (r *CallbackResponse) Answer(ctx context.Context, sender utils.IMessageSend
 		if r.EditParams.ParseMode == "" {
 			r.EditParams.ParseMode = models.ParseModeHTML
 		}
-		r.CallbackParams.ShowAlert = true
 		_, err := sender.EditMessageText(ctx, r.EditParams)
 		return err
 	}

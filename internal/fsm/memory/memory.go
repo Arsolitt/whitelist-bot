@@ -11,7 +11,9 @@ type FSM struct {
 	mu     sync.RWMutex
 }
 
-func NewFSM() *FSM {
+// WARNING: This FSM can potentially cause memory leaks with large number of users.
+// User different FSM implementations with TTL.
+func New() *FSM {
 	return &FSM{
 		states: make(map[domainUser.ID]fsm.State),
 	}

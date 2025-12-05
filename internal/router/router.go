@@ -127,7 +127,11 @@ func (r *TelegramRouter) WrapHandler(handler HandlerFunc) bot.HandlerFunc {
 			return
 		}
 		slog.DebugContext(ctx, "User locked")
-		defer r.locker.Unlock(user.ID())
+		defer func() {
+			if err := r.locker.Unlock(user.ID()); err != nil {
+				slog.ErrorContext(ctx, "Failed to unlock user", logger.ErrorField, err)
+			}
+		}()
 
 		slog.DebugContext(ctx, "Trying to get user state")
 		currentState, err := r.fsm.GetState(user.ID())
@@ -144,7 +148,7 @@ func (r *TelegramRouter) WrapHandler(handler HandlerFunc) bot.HandlerFunc {
 			return
 		}
 		if nextState != currentState {
-			if r.fsm.SetState(user.ID(), nextState) != nil {
+			if err := r.fsm.SetState(user.ID(), nextState); err != nil {
 				r.errorHandler(ctx, b, update, fmt.Errorf("failed to set user state: %w", err))
 				return
 			}
@@ -190,13 +194,13 @@ func (r *TelegramRouter) checkUser(
 	return user, nil
 }
 
-func (r *TelegramRouter) StateMatchFunc(expectedState fsm.State) bot.MatchFunc {
+func (r *TelegramRouter) StateMatchFunc(ctx context.Context, expectedState fsm.State) bot.MatchFunc {
 	return func(update *models.Update) bool {
 		if update.Message == nil || update.Message.From == nil {
 			return false
 		}
 
-		user, err := r.userRepository.UserByTelegramID(context.Background(), update.Message.From.ID)
+		user, err := r.userRepository.UserByTelegramID(ctx, update.Message.From.ID)
 		if err != nil {
 			return false
 		}
