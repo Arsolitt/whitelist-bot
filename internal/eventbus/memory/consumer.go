@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"time"
 )
 
 type Consumer struct {
@@ -18,10 +17,17 @@ func (c *Consumer) Consume(ctx context.Context) ([]byte, bool) {
 
 		select {
 		case <-ctx.Done():
+			if data, ok := c.buffer.Pop(); ok {
+				return data, true
+			}
 			return nil, false
-		default:
-
-			time.Sleep(time.Second)
+		case _, ok := <-c.buffer.Notifier():
+			if !ok {
+				if data, ok := c.buffer.Pop(); ok {
+					return data, true
+				}
+				return nil, false
+			}
 		}
 	}
 }

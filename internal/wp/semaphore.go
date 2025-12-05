@@ -2,6 +2,7 @@ package wp
 
 import (
 	"context"
+	"errors"
 )
 
 type ISemaphore interface {
@@ -13,10 +14,13 @@ type Semaphore struct {
 	sem chan struct{}
 }
 
-func NewSemaphore(maxConcurrent int) *Semaphore {
+func NewSemaphore(maxConcurrent int) (*Semaphore, error) {
+	if maxConcurrent <= 0 {
+		return nil, errors.New("max concurrent must be greater than 0")
+	}
 	return &Semaphore{
 		sem: make(chan struct{}, maxConcurrent),
-	}
+	}, nil
 }
 
 func (s *Semaphore) Acquire(ctx context.Context) error {

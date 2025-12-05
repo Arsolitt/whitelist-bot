@@ -23,10 +23,6 @@ func New(bufferCapacity int) *Bus {
 }
 
 func (b *Bus) Publish(ctx context.Context, topic string, data any) error {
-	if b.closed {
-		return eventbus.ErrBusClosed
-	}
-
 	dataBytes, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("failed to json marshal data: %w", err)
@@ -34,6 +30,10 @@ func (b *Bus) Publish(ctx context.Context, topic string, data any) error {
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
+	if b.closed {
+		return eventbus.ErrBusClosed
+	}
 
 	_, exists := b.topics[topic]
 	if !exists {
@@ -52,6 +52,9 @@ func (b *Bus) Close() error {
 	defer b.mu.Unlock()
 
 	b.closed = true
+	for _, buffer := range b.topics {
+		buffer.Close()
+	}
 	b.topics = nil
 	return nil
 }
