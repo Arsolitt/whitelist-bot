@@ -72,6 +72,7 @@ func DeclineWLRequest(
 
 		declinedRequest, err := dbWLRequest.Decline(
 			domainWLRequest.ArbiterID(arbiter.ID()),
+			// TODO: add possibility to customize decline reason.
 			domainWLRequest.DeclineReason("Отклонено администратором"),
 		)
 		if err != nil {

@@ -69,7 +69,7 @@ func wlRequestBody(
 ) {
 	fmt.Fprintf(sb, "👤 <b>Ник:</b> %s\n", html.EscapeString(string(wlRequest.Nickname())))
 	if wlRequest.Status() == domainWLRequest.StatusDeclined && !wlRequest.DeclineReason().IsZero() {
-		fmt.Fprintf(sb, "🔄 <b>Причина отказа:</b> %s\n", wlRequest.DeclineReason())
+		fmt.Fprintf(sb, "🔄 <b>Причина отказа:</b> %s\n", html.EscapeString(string(wlRequest.DeclineReason())))
 	}
 	fmt.Fprintf(sb, "🔗 <b>Заявитель:</b> @%s\n", requester.Username())
 	fmt.Fprintf(sb, "🔗 <b>Арбитр:</b> @%s\n", arbiter.Username())

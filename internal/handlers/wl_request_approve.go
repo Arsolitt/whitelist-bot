@@ -88,7 +88,7 @@ func ApproveWLRequest(
 		response := router.NewCallbackResponse(&bot.AnswerCallbackQueryParams{
 			Text: "✅ Заявка подтверждена",
 		}, &bot.EditMessageTextParams{
-			Text: msgs.ApprovedWLRequest(dbWLRequest, arbiter, requester),
+			Text: msgs.ApprovedWLRequest(updatedRequest, arbiter, requester),
 		})
 
 		return state, response, nil
