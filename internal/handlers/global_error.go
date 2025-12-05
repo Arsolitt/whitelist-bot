@@ -38,11 +38,12 @@ func GlobalErrorHandler() func(ctx context.Context, b *bot.Bot, update *models.U
 
 	return func(ctx context.Context, b *bot.Bot, update *models.Update, err error) {
 		slog.ErrorContext(ctx, "Failed to handle update", logger.ErrorField, err.Error())
+		customMsg := getCustomErrorMessage(err)
 		switch {
-		case getCustomErrorMessage(err) != "" && update.Message != nil:
+		case customMsg != "" && update.Message != nil:
 			b.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
-				Text:   getCustomErrorMessage(err),
+				Text:   customMsg,
 			})
 		case update.Message != nil:
 			b.SendMessage(ctx, &bot.SendMessageParams{

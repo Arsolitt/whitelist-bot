@@ -92,7 +92,9 @@ func (r *TelegramRouter) WrapHandler(handler HandlerFunc) bot.HandlerFunc {
 			ctx = logger.WithLogValue(ctx, logger.MessageChatIDField, update.Message.Chat.ID)
 			ctx = logger.WithLogValue(ctx, logger.MessageChatTypeField, update.Message.Chat.Type)
 		} else if update.CallbackQuery != nil {
-			chatID = update.CallbackQuery.Message.Message.Chat.ID
+			if update.CallbackQuery.Message.Message != nil {
+				chatID = update.CallbackQuery.Message.Message.Chat.ID
+			}
 			userID = update.CallbackQuery.From.ID
 			userName = update.CallbackQuery.From.Username
 			firstName = update.CallbackQuery.From.FirstName

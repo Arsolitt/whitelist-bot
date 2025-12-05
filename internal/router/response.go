@@ -42,7 +42,7 @@ func (r *MessageResponse) Answer(ctx context.Context, sender utils.IMessageSende
 	}
 	for _, p := range r.Params {
 		if p == nil {
-			return nil
+			continue
 		}
 		if p.ChatID == nil {
 			p.ChatID = update.Message.Chat.ID
@@ -111,13 +111,13 @@ func (r *CallbackResponse) Answer(ctx context.Context, sender utils.IMessageSend
 		if r.CallbackParams.CallbackQueryID == "" {
 			r.CallbackParams.CallbackQueryID = update.CallbackQuery.ID
 		}
+		r.CallbackParams.ShowAlert = true
 		_, err := sender.AnswerCallbackQuery(ctx, r.CallbackParams)
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to answer callback query", logger.ErrorField, err.Error())
 		}
-		r.CallbackParams.ShowAlert = true
 	}
-	if r.EditParams != nil {
+	if r.EditParams != nil && update.CallbackQuery.Message.Message != nil {
 		if r.EditParams.ChatID == nil {
 			r.EditParams.ChatID = update.CallbackQuery.Message.Message.Chat.ID
 		}

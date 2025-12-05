@@ -2,6 +2,7 @@ package msgs
 
 import (
 	"fmt"
+	"html"
 	"strings"
 	domainUser "whitelist-bot/internal/domain/user"
 	domainWLRequest "whitelist-bot/internal/domain/wl_request"
@@ -18,7 +19,7 @@ func WaitingForNickname() string {
 func WLRequestCreated(wlRequest domainWLRequest.WLRequest) string {
 	var sb strings.Builder
 	sb.WriteString("<b>Заявка в белый список успешно отправлена</b>\n\n")
-	sb.WriteString(fmt.Sprintf("👤 <b>Ник:</b> %s\n", wlRequest.Nickname()))
+	sb.WriteString(fmt.Sprintf("👤 <b>Ник:</b> %s\n", html.EscapeString(string(wlRequest.Nickname()))))
 	sb.WriteString(fmt.Sprintf("🆔 <b>ID заявки:</b> <code>%s</code>\n", wlRequest.ID()))
 	sb.WriteString(fmt.Sprintf("📅 <b>Создана:</b> %s\n", wlRequest.CreatedAt().Format(timeFormat)))
 	return sb.String()
@@ -27,7 +28,7 @@ func WLRequestCreated(wlRequest domainWLRequest.WLRequest) string {
 func PendingWLRequest(wlRequest domainWLRequest.WLRequest, requester domainUser.User) string {
 	var sb strings.Builder
 	sb.WriteString("📋 <b>Ожидающая заявка</b>\n\n")
-	sb.WriteString(fmt.Sprintf("👤 <b>Ник:</b> %s\n", wlRequest.Nickname()))
+	sb.WriteString(fmt.Sprintf("👤 <b>Ник:</b> %s\n", html.EscapeString(string(wlRequest.Nickname()))))
 	sb.WriteString(fmt.Sprintf("🆔 <b>ID заявки:</b> <code>%s</code>\n", wlRequest.ID()))
 	sb.WriteString(fmt.Sprintf("👥 <b>Заявитель:</b> @%s\n", requester.Username()))
 	sb.WriteString(fmt.Sprintf("📅 <b>Создана:</b> %s\n", wlRequest.CreatedAt().Format(timeFormat)))
@@ -66,7 +67,7 @@ func wlRequestBody(
 	arbiter domainUser.User,
 	requester domainUser.User,
 ) {
-	fmt.Fprintf(sb, "👤 <b>Ник:</b> %s\n", wlRequest.Nickname())
+	fmt.Fprintf(sb, "👤 <b>Ник:</b> %s\n", html.EscapeString(string(wlRequest.Nickname())))
 	if wlRequest.Status() == domainWLRequest.StatusDeclined && !wlRequest.DeclineReason().IsZero() {
 		fmt.Fprintf(sb, "🔄 <b>Причина отказа:</b> %s\n", wlRequest.DeclineReason())
 	}
