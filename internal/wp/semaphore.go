@@ -4,6 +4,11 @@ import (
 	"context"
 )
 
+type ISemaphore interface {
+	Acquire(ctx context.Context) error
+	Release()
+}
+
 type Semaphore struct {
 	sem chan struct{}
 }

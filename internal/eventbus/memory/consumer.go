@@ -11,13 +11,16 @@ type Consumer struct {
 
 func (c *Consumer) Consume(ctx context.Context) ([]byte, bool) {
 	for {
+
+		if data, ok := c.buffer.Pop(); ok {
+			return data, true
+		}
+
 		select {
 		case <-ctx.Done():
 			return nil, false
 		default:
-			if data, ok := c.buffer.Pop(); ok {
-				return data, true
-			}
+
 			time.Sleep(time.Second)
 		}
 	}
