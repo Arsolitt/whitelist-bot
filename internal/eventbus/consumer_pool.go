@@ -10,7 +10,7 @@ import (
 type ConsumerUnitHandler func(ctx context.Context, data []byte) error
 
 type ConsumerUnit struct {
-	Topic   string
+	Topic   string // TODO: add topic type with validation
 	Handler ConsumerUnitHandler
 }
 

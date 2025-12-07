@@ -111,7 +111,6 @@ func (r *CallbackResponse) Answer(ctx context.Context, sender utils.IMessageSend
 		if r.CallbackParams.CallbackQueryID == "" {
 			r.CallbackParams.CallbackQueryID = update.CallbackQuery.ID
 		}
-		r.CallbackParams.ShowAlert = true
 		_, err := sender.AnswerCallbackQuery(ctx, r.CallbackParams)
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to answer callback query", logger.ErrorField, err.Error())

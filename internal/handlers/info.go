@@ -15,6 +15,7 @@ import (
 func Info(
 	userGetter iUserGetter,
 ) router.HandlerFunc {
+
 	return func(
 		ctx context.Context,
 		b *bot.Bot,

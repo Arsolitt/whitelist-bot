@@ -15,6 +15,8 @@ type Bus struct {
 	closed   bool
 }
 
+// Not support multiple readers from 1 topic.
+// Use different implementations if you need multiple readers from 1 topic.
 func New(bufferCapacity int) *Bus {
 	return &Bus{
 		topics:   make(map[string]*Buffer),

@@ -35,15 +35,15 @@ type iWLRequestRepository interface {
 type Handlers struct {
 	userRepo      iUserRepository
 	wlRequestRepo iWLRequestRepository
-	metastore     metastore.Metastore
+	ms            metastore.IMetastore
 	config        core.Config
 }
 
 func New(
 	userRepo iUserRepository,
 	wlRequestRepo iWLRequestRepository,
-	metastore metastore.Metastore,
+	ms metastore.IMetastore,
 	config core.Config,
 ) *Handlers {
-	return &Handlers{userRepo: userRepo, wlRequestRepo: wlRequestRepo, metastore: metastore, config: config}
+	return &Handlers{userRepo: userRepo, wlRequestRepo: wlRequestRepo, ms: ms, config: config}
 }
