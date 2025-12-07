@@ -477,9 +477,9 @@ func TestApproveWLRequest_ApproveError(t *testing.T) {
 	assert.Equal(t, fsm.StateIdle, state)
 	require.NotNil(t, response)
 
-	msgResponse, ok := response.(*router.MessageResponse)
+	callbackResponse, ok := response.(*router.CallbackResponse)
 	require.True(t, ok)
-	assert.NotEmpty(t, msgResponse.Params)
+	assert.NotNil(t, callbackResponse.CallbackParams)
 }
 
 func TestApproveWLRequest_UpdateWLRequestError(t *testing.T) {
