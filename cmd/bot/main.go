@@ -106,6 +106,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// START HANDLER
+	r.RegisterHandlerMatchFunc(
+		matcher.Command(core.CommandCancel),
+		handlers.Cancel(),
+	)
+
 	// INFO HANDLER
 	r.RegisterHandlerMatchFunc(
 		matcher.And(
@@ -115,7 +121,7 @@ func main() {
 		handlers.Info(userRepo),
 	)
 
-	// NEW WL REQUEST HANDLER
+	// NEW WL REQUEST HANDLERS
 	r.RegisterHandlerMatchFunc(
 		matcher.And(matcher.MsgText(core.CommandNewWLRequest), r.StateMatchFunc(ctx, fsm.StateIdle)),
 		handlers.NewWLRequest(),
@@ -145,6 +151,12 @@ func main() {
 			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
 		),
 		handlers.DeclineWLRequest(userRepo, wlRequestRepo))
+
+	// START HANDLER
+	r.RegisterHandlerMatchFunc(
+		matcher.Command(core.CommandStart),
+		handlers.Start(),
+	)
 
 	consumerPool := eventbus.NewConsumerPool(eBus, []eventbus.ConsumerUnit{
 		{

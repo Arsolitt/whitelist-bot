@@ -13,7 +13,11 @@ const (
 )
 
 func WaitingForNickname() string {
-	return "Привет! Отправь свой ник, чтобы подать заявку в белый список."
+	var sb strings.Builder
+	sb.WriteString("Привет! Отправь свой ник, чтобы подать заявку в белый список.\n")
+	sb.WriteString("Если в твоём нике есть спец. символы, то оберни его в\n <code>```\nnickname\n```</code>\n\n")
+	sb.WriteString("Чтобы отменить заявку, напиши: /cancel")
+	return sb.String()
 }
 
 func WLRequestCreated(wlRequest domainWLRequest.WLRequest) string {
