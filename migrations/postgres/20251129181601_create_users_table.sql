@@ -2,8 +2,8 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY NOT NULL,
-    telegram_id INTEGER UNIQUE NOT NULL,
-    chat_id INTEGER UNIQUE NOT NULL,
+    telegram_id BIGINT UNIQUE NOT NULL,
+    chat_id BIGINT UNIQUE NOT NULL,
     first_name TEXT,
     last_name TEXT,
     username TEXT NOT NULL,
