@@ -3,12 +3,17 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"whitelist-bot/internal/core"
 	"whitelist-bot/internal/core/logger"
+	"whitelist-bot/internal/core/utils"
+	"whitelist-bot/internal/eventbus"
 	"whitelist-bot/internal/fsm"
 	"whitelist-bot/internal/msgs"
 	"whitelist-bot/internal/router"
 
 	domainWLRequest "whitelist-bot/internal/domain/wl_request"
+	bh "whitelist-bot/internal/eventbus/handlers"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -17,6 +22,7 @@ import (
 func SubmitWLRequestNickname(
 	userRepo iUserRepository,
 	wlRequestRepo iWLRequestRepository,
+	ep eventbus.IEventPublisher,
 ) router.HandlerFunc {
 	return func(ctx context.Context, _ *bot.Bot, update *models.Update, state fsm.State) (fsm.State, router.Response, error) {
 		// TODO: add validation for nickname. Length, special characters, etc.
@@ -46,6 +52,14 @@ func SubmitWLRequestNickname(
 				Text: msgs.WLRequestCreated(dbWLRequest),
 			},
 		)
+
+		if err := ep.Publish(ctx, core.TopicWLRequestCreated, bh.WLRequestCreatedEvent{
+			ID:        utils.NewUniqueID(),
+			WLRequest: dbWLRequest,
+			Requester: user,
+		}); err != nil {
+			slog.WarnContext(ctx, "Failed to publish wl request created event", logger.ErrorField, err.Error())
+		}
 		return fsm.StateIdle, response, nil
 	}
 }
