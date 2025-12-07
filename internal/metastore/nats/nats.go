@@ -108,6 +108,9 @@ func (m *Metastore) Delete(ctx context.Context, uniqueID string, key string) err
 func (m *Metastore) Exists(ctx context.Context, uniqueID string, key string) (bool, error) {
 	_, err := m.bucket.Get(ctx, m.dataKey(uniqueID, key))
 	if err != nil {
+		if errors.Is(err, jetstream.ErrKeyNotFound) {
+			return false, nil
+		}
 		return false, fmt.Errorf("failed to get data: %w", err)
 	}
 	return true, nil
@@ -126,7 +129,7 @@ func (m *Metastore) сreateOrUpdate(ctx context.Context, dataKey string, data []
 	if err != nil && !errors.Is(err, jetstream.ErrKeyNotFound) {
 		return fmt.Errorf("failed to get data: %w", err)
 	} else if err != nil && errors.Is(err, jetstream.ErrKeyNotFound) {
-		_, err = m.bucket.Create(ctx, dataKey, data, jetstream.KeyTTL(defaultTTL))
+		_, err = m.bucket.Create(ctx, dataKey, data, jetstream.KeyTTL(ttl))
 		if err != nil {
 			return fmt.Errorf("failed to create data: %w", err)
 		}

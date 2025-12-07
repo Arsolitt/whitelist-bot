@@ -77,7 +77,7 @@ func wlRequestBody(
 	fmt.Fprintf(sb, "📅 <b>Создана:</b> %s\n", wlRequest.CreatedAt().Format(timeFormat))
 }
 
-func WLRequestAdminNotification(wlRequest domainWLRequest.WLRequest) string {
+func WLRequestAdminNotification() string {
 	var sb strings.Builder
 	sb.WriteString("📋 <b>Новая заявка в белый список</b>\n\n")
 	return sb.String()

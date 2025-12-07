@@ -62,12 +62,12 @@ func HandleWLRequestCreatedEvent(
 		}
 
 		// slice of errors
-		sendingErrors := make([]error, 0, len(adminChatIDs))
+		sendingErrors := make([]error, len(adminChatIDs))
 
 		for i, chatID := range adminChatIDs {
 			_, err = sender.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID:    chatID,
-				Text:      msgs.WLRequestAdminNotification(event.WLRequest),
+				Text:      msgs.WLRequestAdminNotification(),
 				ParseMode: models.ParseModeHTML,
 			})
 			if err != nil {
