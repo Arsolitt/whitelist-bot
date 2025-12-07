@@ -3,9 +3,10 @@ package nats
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log/slog"
 	"time"
+	"whitelist-bot/internal/metastore"
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -42,11 +43,25 @@ func New(ctx context.Context, conn *nats.Conn, bucketName string, replicas int) 
 
 func (m *Metastore) Get(ctx context.Context, uniqueID string, key string) ([]byte, error) {
 	data, err := m.bucket.Get(ctx, m.dataKey(uniqueID, key))
+	if errors.Is(err, jetstream.ErrKeyNotFound) {
+		return nil, metastore.ErrKeyNotFound
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get data: %w", err)
 	}
 
 	return data.Value(), nil
+}
+
+func (m *Metastore) GetString(ctx context.Context, uniqueID string, key string) (string, error) {
+	data, err := m.bucket.Get(ctx, m.dataKey(uniqueID, key))
+	if errors.Is(err, jetstream.ErrKeyNotFound) {
+		return "", metastore.ErrKeyNotFound
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to get data: %w", err)
+	}
+	return string(data.Value()), nil
 }
 
 func (m *Metastore) Set(ctx context.Context, uniqueID string, key string, value any) error {
@@ -62,10 +77,24 @@ func (m *Metastore) Set(ctx context.Context, uniqueID string, key string, value 
 	return nil
 }
 
+func (m *Metastore) SetString(ctx context.Context, uniqueID string, key string, value string) error {
+	_, err := m.bucket.Put(ctx, m.dataKey(uniqueID, key), []byte(value))
+	if err != nil {
+		return fmt.Errorf("failed to put data: %w", err)
+	}
+	return nil
+}
+
 func (m *Metastore) SetWithTTL(ctx context.Context, uniqueID string, key string, value any, ttl time.Duration) error {
-	// TODO: Implement TTL
-	slog.InfoContext(ctx, "Memory metastore does not support TTL")
-	return m.Set(ctx, uniqueID, key, value)
+	data, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("failed to json marshal value: %w", err)
+	}
+	return m.сreateOrUpdate(ctx, m.dataKey(uniqueID, key), data, ttl)
+}
+
+func (m *Metastore) SetStringWithTTL(ctx context.Context, uniqueID string, key string, value string, ttl time.Duration) error {
+	return m.сreateOrUpdate(ctx, m.dataKey(uniqueID, key), []byte(value), ttl)
 }
 
 func (m *Metastore) Delete(ctx context.Context, uniqueID string, key string) error {
@@ -86,4 +115,26 @@ func (m *Metastore) Exists(ctx context.Context, uniqueID string, key string) (bo
 
 func (m *Metastore) dataKey(uniqueID string, key string) string {
 	return fmt.Sprintf("%s__%s", uniqueID, key)
+}
+
+func (m *Metastore) сreateOrUpdate(ctx context.Context, dataKey string, data []byte, ttl time.Duration) error {
+	if ttl == 0 {
+		ttl = defaultTTL
+	}
+
+	keyEntry, err := m.bucket.Get(ctx, dataKey)
+	if err != nil && !errors.Is(err, jetstream.ErrKeyNotFound) {
+		return fmt.Errorf("failed to get data: %w", err)
+	} else if err != nil && errors.Is(err, jetstream.ErrKeyNotFound) {
+		_, err = m.bucket.Create(ctx, dataKey, data, jetstream.KeyTTL(defaultTTL))
+		if err != nil {
+			return fmt.Errorf("failed to create data: %w", err)
+		}
+	} else {
+		_, err = m.bucket.Update(ctx, dataKey, data, keyEntry.Revision())
+		if err != nil {
+			return fmt.Errorf("failed to update data: %w", err)
+		}
+	}
+	return nil
 }
