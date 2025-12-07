@@ -34,4 +34,5 @@ const (
 	WLRequestIDField     = "wl_request_id"
 	ArbiterIDField       = "arbiter_id"
 	RequesterIDField     = "requester_id"
+	EventIDField         = "event_id"
 )
