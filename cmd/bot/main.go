@@ -11,25 +11,31 @@ import (
 	"whitelist-bot/internal/core/db"
 	"whitelist-bot/internal/core/kv"
 	"whitelist-bot/internal/core/logger"
+	"whitelist-bot/internal/eventbus"
 	"whitelist-bot/internal/fsm"
 	memoryFSM "whitelist-bot/internal/fsm/memory"
 	"whitelist-bot/internal/handlers"
 	memoryLocker "whitelist-bot/internal/locker/memory"
 	"whitelist-bot/internal/router"
 	"whitelist-bot/internal/router/matcher"
+	"whitelist-bot/internal/wp"
 
+	bh "whitelist-bot/internal/eventbus/handlers"
+
+	memoryEventBus "whitelist-bot/internal/eventbus/memory"
+	natsMetastore "whitelist-bot/internal/metastore/nats"
 	postgresUserRepository "whitelist-bot/internal/repository/user/postgres"
 	postgresWLRequestRepository "whitelist-bot/internal/repository/wl_request/postgres"
 )
 
 // TODO: write tests !!!!!!!!!!
-// TODO: add event system for notifications.
 // TODO: add validation for nickname. Length, special characters, etc.
-// TODO: add emojis to messages.
 // TODO: add middleware for checking permissions.
 // TODO: add middleware for recovering panics.
 // TODO: add requests limit for users.
 // TODO: refactor to use Must methods for initialization.
+// TODO: add custom update context, set user to context.
+// TODO: add wrapper for bot sending message methods. Retry logic, error handling, default parse mode.
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -46,14 +52,7 @@ func main() {
 	slog.Info("Logger initialized successfully")
 
 	lockerService := memoryLocker.New()
-	fsmService := memoryFSM.NewFSM()
-
-	dbSqlite, err := db.GetSqliteDB(ctx, cfg.Sqlite.URL)
-	if err != nil {
-		slog.Error("Failed to open sqlite database", "error", err.Error())
-		os.Exit(1)
-	}
-	defer dbSqlite.Close()
+	fsmService := memoryFSM.New()
 
 	dbPG, err := db.GetPostgresDB(ctx, cfg.Postgres.URL)
 	if err != nil {
@@ -72,13 +71,22 @@ func main() {
 	userRepo := postgresUserRepository.NewUserRepository(dbPG)
 	wlRequestRepo := postgresWLRequestRepository.NewWLRequestRepository(dbPG)
 
-	// metastoreService, err := natsMetastore.New(ctx, conn, "whitelist-bot", cfg.Nats.MetastoreReplicas)
+	metastoreService, err := natsMetastore.New(ctx, conn, "whitelist-bot", cfg.Nats.MetastoreReplicas)
 	if err != nil {
 		slog.Error("Failed to create NATS metastore", "error", err.Error())
 		os.Exit(1)
 	}
-	// h := handlers.New(userRepo, wlRequestRepo, metastoreService, cfg)
-	r, err := router.NewTelegramRouter(fsmService,
+
+	eBus := memoryEventBus.New(10)
+	defer eBus.Close()
+
+	sem, err := wp.NewSemaphore(10)
+	if err != nil {
+		slog.Error("Failed to create semaphore", "error", err.Error())
+		os.Exit(1)
+	}
+	r, err := router.NewTelegramRouter(
+		fsmService,
 		lockerService,
 		userRepo,
 		handlers.GlobalErrorHandler(),
@@ -102,27 +110,27 @@ func main() {
 	r.RegisterHandlerMatchFunc(
 		matcher.And(
 			matcher.MsgText(core.CommandInfo),
-			r.StateMatchFunc(fsm.StateIdle),
+			r.StateMatchFunc(ctx, fsm.StateIdle),
 		),
 		handlers.Info(userRepo),
 	)
 
 	// NEW WL REQUEST HANDLER
 	r.RegisterHandlerMatchFunc(
-		matcher.And(matcher.MsgText(core.CommandNewWLRequest), r.StateMatchFunc(fsm.StateIdle)),
+		matcher.And(matcher.MsgText(core.CommandNewWLRequest), r.StateMatchFunc(ctx, fsm.StateIdle)),
 		handlers.NewWLRequest(),
 	)
 	r.RegisterHandlerMatchFunc(
 		matcher.And(
 			matcher.MsgText(core.CommandViewPendingWLRequests),
-			r.StateMatchFunc(fsm.StateIdle),
+			r.StateMatchFunc(ctx, fsm.StateIdle),
 			matcher.MatchTelegramIDs(cfg.Telegram.AdminIDs...),
 		),
 		handlers.ViewPendingWLRequests(wlRequestRepo),
 	)
 	r.RegisterHandlerMatchFunc(
-		r.StateMatchFunc(fsm.StateWaitingWLNickname),
-		handlers.SubmitWLRequestNickname(userRepo, wlRequestRepo),
+		r.StateMatchFunc(ctx, fsm.StateWaitingWLNickname),
+		handlers.SubmitWLRequestNickname(userRepo, wlRequestRepo, eBus),
 	)
 
 	r.RegisterHandlerMatchFunc(
@@ -138,16 +146,19 @@ func main() {
 		),
 		handlers.DeclineWLRequest(userRepo, wlRequestRepo))
 
-	// r.RegisterHandlerMatchFunc(matcher.And(
-	// 	r.StateMatchFunc(fsm.StateIdle),
-	// 	matcher.MsgText(core.CommandAnketaStart),
-	// ), h.AnketaStart)
-	// r.RegisterHandlerMatchFunc(r.StateMatchFunc(fsm.StateAnketaName), h.AnketaName)
-	// r.RegisterHandlerMatchFunc(r.StateMatchFunc(fsm.StateAnketaAge), h.AnketaAge)
-	// r.RegisterHandlerMatchFunc(matcher.And(
-	// 	r.StateMatchFunc(fsm.StateIdle),
-	// 	matcher.MsgText(core.CommandAnketaInfo),
-	// ), h.AnketaInfo)
+	consumerPool := eventbus.NewConsumerPool(eBus, []eventbus.ConsumerUnit{
+		{
+			Topic:   core.TopicWLRequestCreated,
+			Handler: bh.HandleWLRequestCreatedEvent(metastoreService, metastoreService, r.Bot(), cfg.Telegram.AdminIDs),
+		},
+	}, sem)
+	err = consumerPool.Start(ctx)
+	if err != nil {
+		slog.Error("Failed to start consumer pool", "error", err.Error())
+		os.Exit(1)
+	}
 
 	r.Start(ctx)
+
+	consumerPool.Wait()
 }
