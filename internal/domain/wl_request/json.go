@@ -41,13 +41,21 @@ func (w *WLRequest) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	w.id = aux.ID
-	w.requesterID = aux.RequesterID
-	w.nickname = aux.Nickname
-	w.status = aux.Status
-	w.declineReason = aux.DeclineReason
-	w.arbiterID = aux.ArbiterID
-	w.createdAt = aux.CreatedAt
-	w.updatedAt = aux.UpdatedAt
+
+	wlRequest, err := NewBuilder().
+		ID(aux.ID).
+		RequesterID(aux.RequesterID).
+		Nickname(aux.Nickname).
+		Status(aux.Status).
+		DeclineReason(aux.DeclineReason).
+		ArbiterID(aux.ArbiterID).
+		CreatedAt(aux.CreatedAt).
+		UpdatedAt(aux.UpdatedAt).
+		Build()
+	if err != nil {
+		return err
+	}
+
+	*w = wlRequest
 	return nil
 }

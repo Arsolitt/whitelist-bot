@@ -41,13 +41,21 @@ func (u *User) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	u.id = aux.ID
-	u.telegramID = aux.TelegramID
-	u.chatID = aux.ChatID
-	u.firstName = aux.FirstName
-	u.lastName = aux.LastName
-	u.username = aux.Username
-	u.createdAt = aux.CreatedAt
-	u.updatedAt = aux.UpdatedAt
+
+	user, err := NewBuilder().
+		ID(aux.ID).
+		TelegramID(aux.TelegramID).
+		ChatID(aux.ChatID).
+		FirstName(aux.FirstName).
+		LastName(aux.LastName).
+		Username(aux.Username).
+		CreatedAt(aux.CreatedAt).
+		UpdatedAt(aux.UpdatedAt).
+		Build()
+	if err != nil {
+		return err
+	}
+
+	*u = user
 	return nil
 }
