@@ -12,14 +12,14 @@ var (
 )
 
 type WLRequest struct {
-	id            ID
-	requesterID   RequesterID
-	nickname      Nickname
-	status        Status
-	declineReason DeclineReason
-	arbiterID     ArbiterID
-	createdAt     time.Time
-	updatedAt     time.Time
+	id            ID            `json:"id"`
+	requesterID   RequesterID   `json:"requester_id"`
+	nickname      Nickname      `json:"nickname"`
+	status        Status        `json:"status"`
+	declineReason DeclineReason `json:"decline_reason"`
+	arbiterID     ArbiterID     `json:"arbiter_id"`
+	createdAt     time.Time     `json:"created_at"`
+	updatedAt     time.Time     `json:"updated_at"`
 }
 
 func (w WLRequest) ID() ID {
